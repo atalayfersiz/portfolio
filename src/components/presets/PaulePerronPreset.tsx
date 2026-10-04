@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Project, Category } from "@/types/portfolio";
 import { motion, AnimatePresence } from "framer-motion";
+import { getAssetPath } from "@/utils/asset";
 
 interface Props {
   projects: Project[];
@@ -350,7 +351,7 @@ export const PaulePerronPreset: React.FC<Props> = ({
                 >
                   {project.coverImage?.url ? (
                     <img
-                      src={project.coverImage.url}
+                      src={getAssetPath(project.coverImage.url)}
                       alt={project.coverImage.alt || project.title}
                       loading="lazy"
                       draggable={false}
@@ -512,7 +513,7 @@ export const PaulePerronPreset: React.FC<Props> = ({
                 >
                   {project.coverImage?.url ? (
                     <img
-                      src={project.coverImage.url}
+                      src={getAssetPath(project.coverImage.url)}
                       alt={project.coverImage.alt || project.title}
                       draggable={false}
                       className="w-full h-full object-cover pointer-events-none select-none"

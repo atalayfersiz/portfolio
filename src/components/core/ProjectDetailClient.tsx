@@ -8,6 +8,7 @@ import { Header } from "@/components/core/Header";
 import { ConfigDrawer } from "@/components/core/ConfigDrawer";
 import { siteConfig } from "@/config/portfolio.config";
 import { ArrowLeft, ArrowUpRight, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { getAssetPath } from "@/utils/asset";
 
 interface Props {
   project: Project;
@@ -268,7 +269,7 @@ export default function ProjectDetailClient({ project, otherProjects }: Props) {
                   >
                     {isVideo ? (
                       <video
-                        src={item.url}
+                        src={getAssetPath(item.url)}
                         autoPlay
                         loop
                         muted
@@ -278,7 +279,7 @@ export default function ProjectDetailClient({ project, otherProjects }: Props) {
                       />
                     ) : (
                       <img
-                        src={item.url}
+                        src={getAssetPath(item.url)}
                         alt={item.alt || `${project.title} Drawing ${idx + 1}`}
                         loading={idx === 0 ? "eager" : "lazy"}
                         className="w-full h-auto block object-contain transition-opacity duration-300"
@@ -315,7 +316,7 @@ export default function ProjectDetailClient({ project, otherProjects }: Props) {
               >
                 <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted dynamic-radius border border-border">
                   <img
-                    src={other.coverImage.url}
+                    src={getAssetPath(other.coverImage.url)}
                     alt={other.coverImage.alt}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-103"
                   />
@@ -424,7 +425,7 @@ export default function ProjectDetailClient({ project, otherProjects }: Props) {
                 >
                   {project.gallery[lightboxIndex].url.toLowerCase().endsWith(".mp4") ? (
                     <video
-                      src={project.gallery[lightboxIndex].url}
+                      src={getAssetPath(project.gallery[lightboxIndex].url)}
                       autoPlay
                       loop
                       muted
@@ -434,7 +435,7 @@ export default function ProjectDetailClient({ project, otherProjects }: Props) {
                     />
                   ) : (
                     <img
-                      src={project.gallery[lightboxIndex].url}
+                      src={getAssetPath(project.gallery[lightboxIndex].url)}
                       alt={project.gallery[lightboxIndex].alt || project.title}
                       draggable={false}
                       className="max-w-[92vw] max-h-[86vh] w-auto h-auto object-contain rounded-xs shadow-2xl pointer-events-none select-none"

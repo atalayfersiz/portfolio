@@ -14,6 +14,7 @@ import { Header } from "@/components/core/Header";
 import { ConfigDrawer } from "@/components/core/ConfigDrawer";
 import { LayoutPreset } from "@/types/portfolio";
 import { ArrowUpRight } from "lucide-react";
+import { getAssetPath } from "@/utils/asset";
 
 export default function AboutPage() {
   const [darkMode, setDarkMode] = useState(false);
@@ -73,7 +74,7 @@ export default function AboutPage() {
           {/* Watercolor Painting Artwork (Original uncropped proportions, no border line) */}
           <div className="shrink-0 max-w-[280px] sm:max-w-[340px] md:max-w-[380px]">
             <img
-              src="/images/watercolor1.jpg"
+              src={getAssetPath("/images/watercolor1.jpg")}
               alt="Atalay Fersiz Watercolor Artwork"
               className="w-full h-auto object-contain block"
             />
