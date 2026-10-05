@@ -374,4 +374,34 @@ export const explorationProjects: Project[] = [
     instagramEmbedUrl: "https://www.instagram.com/reel/DclVEKMxCo1/embed",
     tags: ["Audio-Spatial", "DAW", "Chipperfield", "James-Simon-Galerie", "Museum Island", "Explorations", "Video"],
   },
+  {
+    id: "denkmal-fuer-die-ermordeten-juden-europas",
+    title: "DENKMAL FÜR DIE ERMORDETEN JUDEN EUROPAS",
+    slug: "denkmal-fuer-die-ermordeten-juden-europas",
+    category: "explorations",
+    categories: ["explorations"],
+    gridPos: { x: 5, y: 3 },
+    subtitle: "Audio-Spatial Experience • Peter Eisenman's Memorial to the Murdered Jews of Europe",
+    year: "2026",
+    location: "Berlin / Mitte",
+    coverImage: {
+      url: "/projects/explorations/denkmal-fuer-die-ermordeten-juden-europas/cover/cover.jpg",
+      alt: "Denkmal für die ermordeten Juden Europas audio-spatial experience",
+      aspectRatio: "1/1",
+    },
+    gallery: [],
+    description:
+      "Audio-spatial translation and acoustic exploration of Peter Eisenman's Memorial to the Murdered Jews of Europe in Berlin.",
+    fullStory:
+      "\"The duration of an individual’s experience of it grants no further understanding, since understanding the Holocaust is impossible. The time of the monument, its duration from top surface to ground, is disjoined from the time of experience. In this context, there is no nostalgia, no memory of the past, only the living memory of the individual experience.\" — Eisenman Architects. This study translates the undulating field of concrete stelae, sound occlusions, and acoustic reverberation into generative sound synthesis.",
+    technicalSpecs: [
+      { label: "Subject", value: "Memorial to the Murdered Jews of Europe (Peter Eisenman)" },
+      { label: "Medium", value: "Audio-Spatial Synthesis / Sound Design" },
+      { label: "Location", value: "Mitte, Berlin" },
+      { label: "Year", value: "2026" },
+    ],
+    instagramReelUrl: "https://www.instagram.com/reel/DeFhmx9Jjbz/",
+    instagramEmbedUrl: "https://www.instagram.com/reel/DeFhmx9Jjbz/embed",
+    tags: ["Audio-Spatial", "DAW", "Peter Eisenman", "Holocaust Memorial", "Berlin", "Explorations", "Video"],
+  },
 ];

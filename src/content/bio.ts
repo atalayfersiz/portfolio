@@ -142,8 +142,32 @@ export const competitionsData: CompetitionItem[] = [
   },
 ];
 
+export interface LanguageItem {
+  language: string;
+  level: string;
+  detail?: string;
+}
+
+export const languagesData: LanguageItem[] = [
+  {
+    language: "Turkish",
+    level: "Native",
+  },
+  {
+    language: "English",
+    level: "C1",
+    detail: "Professional / Fluent",
+  },
+  {
+    language: "German",
+    level: "B1",
+    detail: "Intermediate",
+  },
+];
+
 export const softwareSkills = {
   advanced: ["AutoCAD", "Rhinoceros", "Grasshopper", "Enscape", "Lumion", "D5 Render"],
   intermediate: ["3DS Max", "Sketchup", "Twinmotion", "DaVinci Resolve"],
   basic: ["ArchiCAD", "Revit", "Blender", "Unreal Engine", "Stable Diffusion"],
 };
+

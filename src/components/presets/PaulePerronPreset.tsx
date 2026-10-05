@@ -215,6 +215,13 @@ const FLOATING_LAYOUT: Record<
     floatX: [0, 5, -6, 5, 0],
     floatRotate: [-0.5, 0.4, -0.5, 0.6, -0.5],
   },
+  "denkmal-fuer-die-ermordeten-juden-europas": {
+    desktop: { bottom: "45%", left: "1%" },
+    duration: 8.3,
+    floatY: [0, 8, -9, 5, 0],
+    floatX: [0, -5, 6, -4, 0],
+    floatRotate: [0.5, -0.4, 0.5, -0.3, 0.5],
+  },
 };
 
 export const PaulePerronPreset: React.FC<Props> = ({

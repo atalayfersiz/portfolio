@@ -7,6 +7,7 @@ import {
   educationData,
   experienceData,
   competitionsData,
+  languagesData,
   softwareSkills,
 } from "@/content/bio";
 import Link from "next/link";
@@ -192,6 +193,38 @@ export default function AboutPage() {
                 </div>
               );
             })}
+          </div>
+        </section>
+
+        {/* Languages Section */}
+        <section className="space-y-6">
+          <div className="border-b border-border/40 pb-3">
+            <h2 className="text-xs font-mono uppercase tracking-[0.25em] text-foreground font-semibold">
+              Languages
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono text-xs">
+            {languagesData.map((lang) => (
+              <div
+                key={lang.language}
+                className="p-4 border border-border/40 dynamic-radius bg-muted/10 flex justify-between items-center"
+              >
+                <div>
+                  <span className="text-foreground uppercase tracking-wider block font-semibold">
+                    {lang.language}
+                  </span>
+                  {lang.detail && (
+                    <span className="text-[10px] text-muted-foreground font-sans block pt-0.5">
+                      {lang.detail}
+                    </span>
+                  )}
+                </div>
+                <span className="px-2.5 py-0.5 bg-background border border-border/50 text-foreground dynamic-radius font-medium text-[11px]">
+                  {lang.level}
+                </span>
+              </div>
+            ))}
           </div>
         </section>
 
