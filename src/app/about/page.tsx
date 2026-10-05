@@ -51,9 +51,6 @@ export default function AboutPage() {
         <section className="border-b border-border/40 pb-12 flex flex-col sm:flex-row sm:items-center justify-between gap-8">
           <div className="space-y-4">
             <div className="space-y-2">
-              <span className="text-xs font-mono uppercase tracking-[0.3em] text-muted-foreground block">
-                c u r r i c u l u m   v i t a e
-              </span>
               <h1 className="text-4xl sm:text-5xl font-light tracking-tight uppercase">
                 {siteConfig.name}
               </h1>
