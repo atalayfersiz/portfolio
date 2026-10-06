@@ -46,12 +46,12 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground transition-colors duration-300">
+    <div className="h-screen w-screen overflow-hidden flex flex-col bg-background text-foreground transition-colors duration-300">
       {/* Header */}
       <Header onOpenConfig={() => setIsConfigOpen(true)} />
 
-      {/* Dynamic Layout Preset Renderer */}
-      <main className="flex-1">
+      {/* Dynamic Layout Preset Renderer — Full Viewport Miro Canvas */}
+      <main className="flex-1 relative w-full h-[calc(100vh-4rem)] overflow-hidden">
         {activePreset === "paule-perron" && (
           <PaulePerronPreset
             projects={sampleProjects}
@@ -82,34 +82,6 @@ export default function Home() {
         showTitles={showTitles}
         onToggleTitles={toggleTitles}
       />
-
-      {/* Minimal Footer */}
-      <footer className="border-t border-border/40 py-4 px-6 text-[11px] font-mono text-muted-foreground bg-background">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <p>© {new Date().getFullYear()} {siteConfig.name}</p>
-          <div className="flex items-center gap-4">
-            {activePreset === "paule-perron" && (
-              <>
-                <button
-                  onClick={toggleTitles}
-                  className="hover:text-foreground transition-colors text-[10px] uppercase tracking-wider"
-                >
-                  names: {showTitles ? "on" : "off"}
-                </button>
-                <button
-                  onClick={toggleShadows}
-                  className="hover:text-foreground transition-colors text-[10px] uppercase tracking-wider"
-                >
-                  shadows: {showShadows ? "on" : "off"}
-                </button>
-              </>
-            )}
-            <button onClick={() => setIsConfigOpen(true)} className="hover:text-foreground transition-colors">
-              settings
-            </button>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

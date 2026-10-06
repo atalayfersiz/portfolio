@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Project, Category } from "@/types/portfolio";
 import { motion, AnimatePresence } from "framer-motion";
 import { getAssetPath } from "@/utils/asset";
+import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 
 interface Props {
   projects: Project[];
@@ -20,7 +21,7 @@ const CATEGORIES: { id: Category; label: string; isBold?: boolean }[] = [
   { id: "explorations", label: "e x p l o r a t i o n s" },
 ];
 
-// Perfectly balanced, non-colliding spatial positions distributed across the canvas
+// Balanced, non-colliding spatial positions filling the canvas organically
 const FLOATING_LAYOUT: Record<
   string,
   {
@@ -32,223 +33,219 @@ const FLOATING_LAYOUT: Record<
   }
 > = {
   // ==========================================
-  // ROW 1 — Top Edge (Y: ~3% - 4%)
+  // BAND 1 — Top Band (Y: ~5% - 7%)
   // ==========================================
   "tower-in-kadikoy": {
-    desktop: { top: "3%", left: "3%" },
+    desktop: { top: "6%", left: "4%" },
     duration: 8.2,
-    floatY: [0, 4, -4, 2, 0],
-    floatX: [0, -3, 2, -2, 0],
-    floatRotate: [0.3, -0.4, 0.3, -0.2, 0.3],
+    floatY: [0, 3, -3, 2, 0],
+    floatX: [0, -2, 2, -1, 0],
+    floatRotate: [0.3, -0.3, 0.2, -0.2, 0.3],
   },
   tidescape: {
-    desktop: { top: "3%", left: "25%" },
+    desktop: { top: "5%", left: "20%" },
     duration: 7.2,
-    floatY: [0, -4, 3, -3, 0],
-    floatX: [0, 3, -2, 2, 0],
-    floatRotate: [-0.3, 0.4, -0.3, 0.2, -0.3],
+    floatY: [0, -3, 2, -2, 0],
+    floatX: [0, 2, -2, 1, 0],
+    floatRotate: [-0.2, 0.3, -0.2, 0.2, -0.2],
   },
   "curve-growth": {
-    desktop: { top: "3%", left: "47%" },
+    desktop: { top: "5%", left: "37%" },
     duration: 7.5,
-    floatY: [0, 3, -4, 2, 0],
-    floatX: [0, -2, 3, -2, 0],
-    floatRotate: [0.4, -0.3, 0.3, -0.4, 0.4],
+    floatY: [0, 2, -3, 2, 0],
+    floatX: [0, -2, 2, -1, 0],
+    floatRotate: [0.3, -0.2, 0.2, -0.3, 0.3],
   },
   kartalkaya: {
-    desktop: { top: "3%", left: "71%" },
+    desktop: { top: "5%", left: "54%" },
     duration: 7.8,
-    floatY: [0, 4, -3, 3, 0],
-    floatX: [0, -3, 3, -2, 0],
-    floatRotate: [0.3, -0.4, 0.3, -0.2, 0.3],
+    floatY: [0, 3, -2, 2, 0],
+    floatX: [0, -2, 2, -1, 0],
+    floatRotate: [0.2, -0.3, 0.2, -0.2, 0.2],
   },
   "tower-in-ihsaniye": {
-    desktop: { top: "3%", left: "91%" },
+    desktop: { top: "5%", left: "71%" },
     duration: 6.8,
-    floatY: [0, -3, 4, -2, 0],
-    floatX: [0, -3, 2, -3, 0],
-    floatRotate: [-0.3, 0.4, -0.3, 0.3, -0.3],
-  },
-
-  // ==========================================
-  // ROW 2 — Upper Mid (Y: ~19% - 21%)
-  // ==========================================
-  "pb-workshop": {
-    desktop: { top: "20%", left: "2%" },
-    duration: 8.5,
-    floatY: [0, 4, -3, 2, 0],
-    floatX: [0, -2, 3, -2, 0],
-    floatRotate: [0.3, -0.3, 0.3, -0.2, 0.3],
-  },
-  cb: {
-    desktop: { top: "19%", left: "16%" },
-    duration: 7.3,
-    floatY: [0, 3, -4, 2, 0],
-    floatX: [0, -3, 2, -2, 0],
-    floatRotate: [0.3, -0.3, 0.3, -0.2, 0.3],
-  },
-  origami: {
-    desktop: { top: "20%", left: "30%" },
-    duration: 8.1,
-    floatY: [0, -4, 3, -3, 0],
-    floatX: [0, 3, -3, 2, 0],
-    floatRotate: [-0.4, 0.3, -0.3, 0.3, -0.4],
-  },
-  hansapocene: {
-    desktop: { top: "20%", left: "70%" },
-    duration: 8.0,
-    floatY: [0, -4, 3, -2, 0],
-    floatX: [0, 3, -2, 2, 0],
-    floatRotate: [-0.3, 0.4, -0.3, 0.2, -0.3],
-  },
-  urla: {
-    desktop: { top: "19%", left: "84%" },
-    duration: 8.5,
-    floatY: [0, 3, -4, 2, 0],
-    floatX: [0, -2, 3, -2, 0],
-    floatRotate: [0.3, -0.4, 0.3, -0.2, 0.3],
-  },
-  fields: {
-    desktop: { top: "20%", left: "94%" },
-    duration: 7.4,
-    floatY: [0, 4, -3, 3, 0],
-    floatX: [0, -2, 3, -2, 0],
-    floatRotate: [0.3, -0.4, 0.3, -0.2, 0.3],
-  },
-
-  // ==========================================
-  // ROW 3 — Center Outer Wings (Y: ~39% - 40%)
-  // ==========================================
-  "unite-dhabitation-to-daw": {
-    desktop: { top: "40%", left: "3%" },
-    duration: 8.6,
-    floatY: [0, 4, -3, 2, 0],
-    floatX: [0, -3, 2, -2, 0],
-    floatRotate: [0.3, -0.3, 0.3, -0.2, 0.3],
-  },
-  aggregation: {
-    desktop: { top: "39%", left: "18%" },
-    duration: 7.9,
-    floatY: [0, 3, -4, 2, 0],
+    floatY: [0, -2, 3, -2, 0],
     floatX: [0, -2, 2, -2, 0],
-    floatRotate: [0.2, -0.3, 0.3, -0.2, 0.2],
-  },
-  mdc: {
-    desktop: { top: "39%", left: "80%" },
-    duration: 7.0,
-    floatY: [0, 3, -4, 2, 0],
-    floatX: [0, -2, 2, -2, 0],
-    floatRotate: [0.3, -0.3, 0.2, -0.2, 0.3],
-  },
-  "james-simon-galerie-audio-path": {
-    desktop: { top: "40%", left: "93%" },
-    duration: 8.1,
-    floatY: [0, -3, 4, -2, 0],
-    floatX: [0, 2, -3, 2, 0],
-    floatRotate: [-0.3, 0.3, -0.3, 0.3, -0.3],
-  },
-
-  // ==========================================
-  // ROW 4 — Lower Mid Wings (Y: ~59% - 60%)
-  // ==========================================
-  "denkmal-fuer-die-ermordeten-juden-europas": {
-    desktop: { top: "59%", left: "3%" },
-    duration: 8.3,
-    floatY: [0, 3, -4, 2, 0],
-    floatX: [0, -2, 3, -2, 0],
-    floatRotate: [0.3, -0.3, 0.3, -0.2, 0.3],
-  },
-  amorf: {
-    desktop: { top: "60%", left: "18%" },
-    duration: 7.1,
-    floatY: [0, -3, 3, -3, 0],
-    floatX: [0, 3, -2, 2, 0],
-    floatRotate: [-0.3, 0.3, -0.3, 0.2, -0.3],
-  },
-  particle: {
-    desktop: { top: "60%", left: "80%" },
-    duration: 7.7,
-    floatY: [0, -4, 3, -2, 0],
-    floatX: [0, 3, -3, 2, 0],
-    floatRotate: [-0.3, 0.3, -0.3, 0.2, -0.3],
-  },
-  mavisehir: {
-    desktop: { top: "59%", left: "93%" },
-    duration: 8.0,
-    floatY: [0, -4, 3, -3, 0],
-    floatX: [0, 3, -2, 2, 0],
-    floatRotate: [-0.3, 0.3, -0.3, 0.3, -0.3],
-  },
-
-  // ==========================================
-  // ROW 5 — Lower Outer (Y: ~77% - 79%)
-  // ==========================================
-  if: {
-    desktop: { top: "78%", left: "2%" },
-    duration: 7.6,
-    floatY: [0, 4, -3, 2, 0],
-    floatX: [0, -3, 2, -2, 0],
-    floatRotate: [0.3, -0.3, 0.2, -0.2, 0.3],
-  },
-  "iris-tower": {
-    desktop: { top: "79%", left: "16%" },
-    duration: 8.8,
-    floatY: [0, 4, -4, 3, 0],
-    floatX: [0, 3, -3, 2, 0],
-    floatRotate: [0.4, -0.3, 0.4, -0.3, 0.4],
-  },
-  "blended-mesh": {
-    desktop: { top: "78%", left: "30%" },
-    duration: 8.3,
-    floatY: [0, -3, 4, -2, 0],
-    floatX: [0, 3, -3, 2, 0],
-    floatRotate: [-0.3, 0.3, -0.3, 0.2, -0.3],
-  },
-  "steglitzer-kreisel": {
-    desktop: { top: "78%", left: "70%" },
-    duration: 8.2,
-    floatY: [0, -3, 3, -2, 0],
-    floatX: [0, 2, -3, 2, 0],
-    floatRotate: [-0.3, 0.3, -0.2, 0.3, -0.3],
-  },
-  "kreuzberg-tower-to-daw": {
-    desktop: { top: "79%", left: "84%" },
-    duration: 8.4,
-    floatY: [0, 3, -4, 2, 0],
-    floatX: [0, -2, 3, -2, 0],
-    floatRotate: [0.3, -0.4, 0.2, -0.3, 0.3],
+    floatRotate: [-0.2, 0.3, -0.2, 0.2, -0.2],
   },
   canography: {
-    desktop: { top: "78%", left: "94%" },
+    desktop: { top: "6%", left: "87%" },
     duration: 6.9,
-    floatY: [0, -4, 3, -2, 0],
-    floatX: [0, 3, -2, 2, 0],
-    floatRotate: [-0.3, 0.3, -0.2, 0.3, -0.3],
+    floatY: [0, -3, 2, -2, 0],
+    floatX: [0, 2, -2, 1, 0],
+    floatRotate: [-0.2, 0.3, -0.2, 0.2, -0.2],
   },
 
   // ==========================================
-  // ROW 6 — Bottom Baseline (Y: ~92% - 93%)
+  // BAND 2 — Upper-Mid Band (Y: ~22% - 24%)
   // ==========================================
-  "kairo-looro": {
-    desktop: { top: "92%", left: "22%" },
+  "pb-workshop": {
+    desktop: { top: "22%", left: "3%" },
+    duration: 8.5,
+    floatY: [0, 3, -2, 2, 0],
+    floatX: [0, -2, 2, -1, 0],
+    floatRotate: [0.2, -0.2, 0.2, -0.2, 0.2],
+  },
+  cb: {
+    desktop: { top: "23%", left: "18%" },
+    duration: 7.3,
+    floatY: [0, 2, -3, 2, 0],
+    floatX: [0, -2, 2, -1, 0],
+    floatRotate: [0.2, -0.2, 0.2, -0.2, 0.2],
+  },
+  origami: {
+    desktop: { top: "24%", left: "33%" },
+    duration: 8.1,
+    floatY: [0, -3, 2, -2, 0],
+    floatX: [0, 2, -2, 1, 0],
+    floatRotate: [-0.3, 0.2, -0.2, 0.2, -0.3],
+  },
+  urla: {
+    desktop: { top: "24%", left: "58%" },
+    duration: 8.5,
+    floatY: [0, 2, -3, 2, 0],
+    floatX: [0, -2, 2, -1, 0],
+    floatRotate: [0.2, -0.3, 0.2, -0.2, 0.2],
+  },
+  hansapocene: {
+    desktop: { top: "23%", left: "73%" },
     duration: 8.0,
-    floatY: [0, -4, 3, -2, 0],
-    floatX: [0, 3, -2, 2, 0],
-    floatRotate: [-0.3, 0.3, -0.3, 0.2, -0.3],
+    floatY: [0, -3, 2, -2, 0],
+    floatX: [0, 2, -2, 1, 0],
+    floatRotate: [-0.2, 0.3, -0.2, 0.2, -0.2],
+  },
+  fields: {
+    desktop: { top: "22%", left: "88%" },
+    duration: 7.4,
+    floatY: [0, 3, -2, 2, 0],
+    floatX: [0, -2, 2, -1, 0],
+    floatRotate: [0.2, -0.3, 0.2, -0.2, 0.2],
+  },
+
+  // ==========================================
+  // BAND 3 — Mid Band / Outer Wings (Y: ~42% - 44%)
+  // ==========================================
+  "unite-dhabitation-to-daw": {
+    desktop: { top: "42%", left: "4%" },
+    duration: 8.6,
+    floatY: [0, 3, -2, 2, 0],
+    floatX: [0, -2, 2, -1, 0],
+    floatRotate: [0.2, -0.2, 0.2, -0.2, 0.2],
+  },
+  aggregation: {
+    desktop: { top: "43%", left: "18%" },
+    duration: 7.9,
+    floatY: [0, 2, -3, 2, 0],
+    floatX: [0, -2, 2, -1, 0],
+    floatRotate: [0.2, -0.2, 0.2, -0.2, 0.2],
+  },
+  "blended-mesh": {
+    desktop: { top: "44%", left: "31%" },
+    duration: 8.3,
+    floatY: [0, -2, 3, -2, 0],
+    floatX: [0, 2, -2, 1, 0],
+    floatRotate: [-0.2, 0.2, -0.2, 0.2, -0.2],
+  },
+  "steglitzer-kreisel": {
+    desktop: { top: "44%", left: "60%" },
+    duration: 8.2,
+    floatY: [0, -2, 2, -2, 0],
+    floatX: [0, 2, -2, 1, 0],
+    floatRotate: [-0.2, 0.2, -0.2, 0.2, -0.2],
+  },
+  mdc: {
+    desktop: { top: "43%", left: "74%" },
+    duration: 7.0,
+    floatY: [0, 2, -3, 2, 0],
+    floatX: [0, -2, 2, -1, 0],
+    floatRotate: [0.2, -0.2, 0.2, -0.2, 0.2],
+  },
+  "james-simon-galerie-audio-path": {
+    desktop: { top: "42%", left: "87%" },
+    duration: 8.1,
+    floatY: [0, -2, 3, -2, 0],
+    floatX: [0, 2, -2, 1, 0],
+    floatRotate: [-0.2, 0.2, -0.2, 0.2, -0.2],
+  },
+
+  // ==========================================
+  // BAND 4 — Lower-Mid Band (Y: ~62% - 64%)
+  // ==========================================
+  "denkmal-fuer-die-ermordeten-juden-europas": {
+    desktop: { top: "62%", left: "5%" },
+    duration: 8.3,
+    floatY: [0, 2, -3, 2, 0],
+    floatX: [0, -2, 2, -1, 0],
+    floatRotate: [0.2, -0.2, 0.2, -0.2, 0.2],
+  },
+  amorf: {
+    desktop: { top: "63%", left: "21%" },
+    duration: 7.1,
+    floatY: [0, -2, 2, -2, 0],
+    floatX: [0, 2, -2, 1, 0],
+    floatRotate: [-0.2, 0.2, -0.2, 0.2, -0.2],
+  },
+  if: {
+    desktop: { top: "64%", left: "36%" },
+    duration: 7.6,
+    floatY: [0, 3, -2, 2, 0],
+    floatX: [0, -2, 2, -1, 0],
+    floatRotate: [0.2, -0.2, 0.2, -0.2, 0.2],
+  },
+  particle: {
+    desktop: { top: "63%", left: "70%" },
+    duration: 7.7,
+    floatY: [0, -3, 2, -2, 0],
+    floatX: [0, 2, -2, 1, 0],
+    floatRotate: [-0.2, 0.2, -0.2, 0.2, -0.2],
+  },
+  mavisehir: {
+    desktop: { top: "62%", left: "86%" },
+    duration: 8.0,
+    floatY: [0, -3, 2, -2, 0],
+    floatX: [0, 2, -2, 1, 0],
+    floatRotate: [-0.2, 0.2, -0.2, 0.2, -0.2],
+  },
+
+  // ==========================================
+  // BAND 5 — Bottom Band (Y: ~78% - 80%)
+  // ==========================================
+  "iris-tower": {
+    desktop: { top: "79%", left: "8%" },
+    duration: 8.8,
+    floatY: [0, 3, -3, 2, 0],
+    floatX: [0, 2, -2, 1, 0],
+    floatRotate: [0.3, -0.2, 0.3, -0.2, 0.3],
+  },
+  "kairo-looro": {
+    desktop: { top: "80%", left: "27%" },
+    duration: 8.0,
+    floatY: [0, -3, 2, -2, 0],
+    floatX: [0, 2, -2, 1, 0],
+    floatRotate: [-0.2, 0.2, -0.2, 0.2, -0.2],
   },
   "friedrichstrasse-to-daw": {
-    desktop: { top: "92%", left: "47%" },
+    desktop: { top: "79%", left: "46%" },
     duration: 7.9,
-    floatY: [0, -3, 3, -2, 0],
-    floatX: [0, 3, -2, 2, 0],
-    floatRotate: [-0.2, 0.3, -0.3, 0.2, -0.2],
+    floatY: [0, -2, 2, -2, 0],
+    floatX: [0, 2, -2, 1, 0],
+    floatRotate: [-0.2, 0.2, -0.2, 0.2, -0.2],
+  },
+  "kreuzberg-tower-to-daw": {
+    desktop: { top: "80%", left: "65%" },
+    duration: 8.4,
+    floatY: [0, 2, -3, 2, 0],
+    floatX: [0, -2, 2, -1, 0],
+    floatRotate: [0.2, -0.3, 0.2, -0.2, 0.2],
   },
   roboshore: {
-    desktop: { top: "92%", left: "73%" },
+    desktop: { top: "79%", left: "83%" },
     duration: 7.8,
-    floatY: [0, -4, 3, -3, 0],
-    floatX: [0, 3, -3, 2, 0],
-    floatRotate: [0.3, -0.4, 0.3, -0.2, 0.3],
+    floatY: [0, -3, 2, -2, 0],
+    floatX: [0, 2, -2, 1, 0],
+    floatRotate: [0.2, -0.3, 0.2, -0.2, 0.2],
   },
 };
 
@@ -260,9 +257,112 @@ export const PaulePerronPreset: React.FC<Props> = ({
 }) => {
   const router = useRouter();
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const isDraggingRef = useRef(false);
   const [hoveredProjectId, setHoveredProjectId] = useState<string | null>(null);
+
+  // Miro Canvas Pan & Zoom State
+  const [zoom, setZoom] = useState<number>(1.0);
+  const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState<boolean>(false);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isDraggingCardRef = useRef<boolean>(false);
+  const panStartRef = useRef<{ startX: number; startY: number; initPanX: number; initPanY: number }>({
+    startX: 0,
+    startY: 0,
+    initPanX: 0,
+    initPanY: 0,
+  });
+
+  // Reset Viewport to Default
+  const resetView = useCallback(() => {
+    setZoom(1.0);
+    setPan({ x: 0, y: 0 });
+  }, []);
+
+  const handleZoomIn = () => {
+    setZoom((prev) => Math.min(Number((prev + 0.15).toFixed(2)), 2.5));
+  };
+
+  const handleZoomOut = () => {
+    setZoom((prev) => Math.max(Number((prev - 0.15).toFixed(2)), 0.4));
+  };
+
+  // Wheel Zoom & Pan handler (Miro style)
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      // Prevent browser default scroll
+      e.preventDefault();
+
+      const rect = container.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      if (e.ctrlKey || e.metaKey || Math.abs(e.deltaY) < 50) {
+        // Pinch-to-zoom / Ctrl+wheel zoom centered around cursor
+        const zoomFactor = e.deltaY < 0 ? 1.08 : 0.92;
+        setZoom((currZoom) => {
+          const nextZoom = Math.min(Math.max(currZoom * zoomFactor, 0.4), 2.5);
+          const zoomRatio = nextZoom / currZoom;
+
+          setPan((currPan) => ({
+            x: mouseX - (mouseX - currPan.x) * zoomRatio,
+            y: mouseY - (mouseY - currPan.y) * zoomRatio,
+          }));
+
+          return nextZoom;
+        });
+      } else {
+        // Standard 2D trackpad / mouse pan
+        setPan((currPan) => ({
+          x: currPan.x - e.deltaX * 0.9,
+          y: currPan.y - e.deltaY * 0.9,
+        }));
+      }
+    };
+
+    container.addEventListener("wheel", handleWheel, { passive: false });
+    return () => {
+      container.removeEventListener("wheel", handleWheel);
+    };
+  }, []);
+
+  // Mouse drag panning on background
+  const handleMouseDown = (e: React.MouseEvent) => {
+    // If clicking a card, button, or link, do not initiate background canvas pan
+    const target = e.target as HTMLElement;
+    if (
+      target.closest(".project-floating-card") ||
+      target.closest(".paule-cat-btn") ||
+      target.closest(".miro-hud")
+    ) {
+      return;
+    }
+
+    setIsPanning(true);
+    panStartRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      initPanX: pan.x,
+      initPanY: pan.y,
+    };
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isPanning) return;
+    const dx = e.clientX - panStartRef.current.startX;
+    const dy = e.clientY - panStartRef.current.startY;
+    setPan({
+      x: panStartRef.current.initPanX + dx,
+      y: panStartRef.current.initPanY + dy,
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsPanning(false);
+  };
 
   // Clear category filter when clicking empty background space
   useEffect(() => {
@@ -270,7 +370,8 @@ export const PaulePerronPreset: React.FC<Props> = ({
       const target = e.target as HTMLElement;
       if (
         target.closest(".project-floating-card") ||
-        target.closest(".paule-cat-btn")
+        target.closest(".paule-cat-btn") ||
+        target.closest(".miro-hud")
       ) {
         return;
       }
@@ -293,7 +394,7 @@ export const PaulePerronPreset: React.FC<Props> = ({
 
   const handleCardClick = (e: React.MouseEvent, project: Project) => {
     e.stopPropagation();
-    if (isDraggingRef.current) return;
+    if (isDraggingCardRef.current) return;
     if (onSelectProject) {
       onSelectProject(project);
     } else {
@@ -308,17 +409,30 @@ export const PaulePerronPreset: React.FC<Props> = ({
   return (
     <div
       ref={containerRef}
-      className="relative w-full min-h-[calc(100vh-4.5rem)] h-auto lg:h-[calc(100vh-4.5rem)] lg:overflow-hidden flex flex-col justify-start lg:justify-center items-center bg-background text-foreground select-none font-heading cursor-default px-4 py-8 lg:p-0"
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+      className={`relative w-full h-full overflow-hidden bg-background text-foreground select-none font-heading touch-none ${
+        isPanning ? "cursor-grabbing" : "cursor-grab"
+      }`}
     >
-      {/* Background Subtle Architectural Dot Grid */}
-      <div className="absolute inset-0 pointer-events-none opacity-[0.03] dark:opacity-[0.06] bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:24px_24px]" />
+      {/* Background Miro Dot Grid that translates with pan & zoom */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-[0.04] dark:opacity-[0.08] transition-[opacity] duration-300"
+        style={{
+          backgroundImage: "radial-gradient(currentColor 1px, transparent 1px)",
+          backgroundSize: `${28 * zoom}px ${28 * zoom}px`,
+          backgroundPosition: `${pan.x}px ${pan.y}px`,
+        }}
+      />
 
       {/* ========================================================================= */}
-      {/* MOBILE LAYOUT (< lg): Category List at Top + 3-Column Filtered Grid       */}
+      {/* MOBILE VIEW (< lg): 3-Column Touch Grid                                   */}
       {/* ========================================================================= */}
-      <div className="lg:hidden w-full flex flex-col items-center z-10 max-w-lg mx-auto">
+      <div className="lg:hidden w-full h-full overflow-y-auto flex flex-col items-center z-10 px-4 py-8 max-w-lg mx-auto pointer-events-auto">
         {/* Category Filter Buttons */}
-        <div className="flex flex-col items-center gap-3.5 text-center my-4 w-full">
+        <div className="flex flex-col items-center gap-3 text-center my-4 w-full">
           {CATEGORIES.map((cat) => {
             const isSelected = activeCategory === cat.id;
             const count = projects.filter((p) => p.categories.includes(cat.id)).length;
@@ -362,10 +476,7 @@ export const PaulePerronPreset: React.FC<Props> = ({
         </div>
 
         {/* 3-Column Project Grid */}
-        <motion.div
-          layout
-          className="grid grid-cols-3 gap-3 sm:gap-4 w-full mt-6 px-1"
-        >
+        <motion.div layout className="grid grid-cols-3 gap-3 sm:gap-4 w-full mt-6 px-1 pb-16">
           <AnimatePresence mode="popLayout">
             {filteredMobileProjects.map((project) => (
               <motion.div
@@ -378,7 +489,6 @@ export const PaulePerronPreset: React.FC<Props> = ({
                 onClick={(e) => handleCardClick(e, project)}
                 className="group flex flex-col items-center cursor-pointer pointer-events-auto select-none"
               >
-                {/* Pure Square Cover Image */}
                 <div
                   className={`relative w-full aspect-square overflow-hidden dynamic-radius bg-muted/20 border border-border/70 group-hover:border-foreground/60 active:scale-95 transition-all ${
                     showShadows ? "shadow-sm group-hover:shadow-md" : "shadow-none"
@@ -398,7 +508,6 @@ export const PaulePerronPreset: React.FC<Props> = ({
                   ) : null}
                 </div>
 
-                {/* Single Project Name Directly Underneath */}
                 {showTitles && (
                   <div className="w-full text-center mt-1.5 px-0.5">
                     <h3 className="text-[9px] sm:text-[10px] font-heading font-medium tracking-wider text-foreground/80 uppercase truncate group-hover:text-foreground transition-colors">
@@ -413,77 +522,79 @@ export const PaulePerronPreset: React.FC<Props> = ({
       </div>
 
       {/* ========================================================================= */}
-      {/* DESKTOP LAYOUT (>= lg): Center Category Typography + Floating Canvas      */}
+      {/* DESKTOP INFINITE MIRO CANVAS (>= lg): Pan, Zoom, Drag & Orbit             */}
       {/* ========================================================================= */}
-      <div className="hidden lg:flex w-full h-full inset-0 absolute flex-col justify-center items-center">
-        {/* Center Fixed Category Typography */}
-        <div className="paule-container relative z-10 flex flex-col justify-center items-center gap-4 sm:gap-5 text-center my-6 lg:my-0 pointer-events-auto">
-          {CATEGORIES.map((cat) => {
-            const isSelected = activeCategory === cat.id;
-            const count = projects.filter((p) => p.categories.includes(cat.id)).length;
+      <div
+        className="hidden lg:block w-full h-full absolute inset-0 origin-center transition-transform duration-75 will-change-transform"
+        style={{
+          transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+          transformOrigin: "center center",
+        }}
+      >
+        {/* Center Category Typography Menu */}
+        <div className="absolute inset-0 flex flex-col justify-center items-center pointer-events-none z-10">
+          <div className="paule-container relative flex flex-col justify-center items-center gap-4 text-center pointer-events-auto">
+            {CATEGORIES.map((cat) => {
+              const isSelected = activeCategory === cat.id;
+              const count = projects.filter((p) => p.categories.includes(cat.id)).length;
 
-            return (
-              <button
-                key={cat.id}
-                onClick={(e) => handleCategoryClick(e, cat.id)}
-                className={`paule-cat-btn group relative cursor-pointer text-xs sm:text-sm md:text-[15px] font-heading tracking-[0.35em] uppercase py-2 px-5 transition-all duration-300 ${
-                  cat.isBold ? "font-bold" : "font-light"
-                } ${
-                  isSelected
-                    ? "text-foreground font-semibold"
-                    : activeCategory
-                    ? "text-muted-foreground/35 hover:text-muted-foreground"
-                    : "text-foreground/75 hover:text-foreground"
-                }`}
-              >
-                <span className={`inline-block transition-all duration-300 ${cat.isBold ? "font-bold" : ""}`}>
-                  {cat.label}
-                </span>
-                <span
-                  className={`ml-2.5 text-[9px] font-mono tracking-widest px-1.5 py-0.2 border dynamic-radius align-middle transition-all duration-300 ${
+              return (
+                <button
+                  key={cat.id}
+                  onClick={(e) => handleCategoryClick(e, cat.id)}
+                  className={`paule-cat-btn group relative cursor-pointer text-xs sm:text-sm md:text-[15px] font-heading tracking-[0.35em] uppercase py-2 px-5 transition-all duration-300 ${
+                    cat.isBold ? "font-bold" : "font-light"
+                  } ${
                     isSelected
-                      ? "border-foreground text-foreground bg-foreground/5 font-semibold"
-                      : "border-border/60 text-muted-foreground/60 opacity-60 group-hover:opacity-100"
+                      ? "text-foreground font-semibold"
+                      : activeCategory
+                      ? "text-muted-foreground/35 hover:text-muted-foreground"
+                      : "text-foreground/75 hover:text-foreground"
                   }`}
                 >
-                  {count}
-                </span>
-                {isSelected && (
-                  <motion.div
-                    layoutId="active-cat-indicator-desktop"
-                    className="absolute -bottom-0.5 left-1/4 right-1/4 h-[1px] bg-foreground/60"
-                    transition={{ type: "spring", stiffness: 350, damping: 30 }}
-                  />
-                )}
-              </button>
-            );
-          })}
+                  <span className={`inline-block transition-all duration-300 ${cat.isBold ? "font-bold" : ""}`}>
+                    {cat.label}
+                  </span>
+                  <span
+                    className={`ml-2.5 text-[9px] font-mono tracking-widest px-1.5 py-0.2 border dynamic-radius align-middle transition-all duration-300 ${
+                      isSelected
+                        ? "border-foreground text-foreground bg-foreground/5 font-semibold"
+                        : "border-border/60 text-muted-foreground/60 opacity-60 group-hover:opacity-100"
+                    }`}
+                  >
+                    {count}
+                  </span>
+                  {isSelected && (
+                    <motion.div
+                      layoutId="active-cat-indicator-desktop"
+                      className="absolute -bottom-0.5 left-1/4 right-1/4 h-[1px] bg-foreground/60"
+                      transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Floating Square Cover Images Layer (No Outer Rectangle Boundary) */}
-        <div className="w-full absolute inset-0 z-20 pointer-events-none">
+        {/* Floating Interactive Project Cards Layer */}
+        <div className="w-full h-full absolute inset-0 z-20 pointer-events-none">
           {projects.map((project) => {
             const config = FLOATING_LAYOUT[project.slug] || {
               desktop: { top: "20%", left: "20%" },
               duration: 7,
-              floatY: [0, -10, 6, -8, 0],
-              floatX: [0, 6, -6, 4, 0],
-              floatRotate: [0, 0.6, -0.6, 0],
+              floatY: [0, -3, 3, -2, 0],
+              floatX: [0, 2, -2, 1, 0],
+              floatRotate: [0, 0.3, -0.3, 0],
             };
 
             const isFilteredActive = activeCategory && project.categories.includes(activeCategory);
             const isHovered = hoveredProjectId === project.id;
 
-            // State styling:
-            // 1. Filtered active: fully opaque (100%), full color (grayscale 0%)
-            // 2. Default: half transparent (55%), B&W (grayscale 100%), full color & opaque on hover
-            // 3. Non-matching filtered: dimmed (10%), grayscale
             let cardStateClass = "";
             if (activeCategory) {
               if (isFilteredActive) {
-                cardStateClass = isHovered
-                  ? "opacity-100 grayscale-0 z-40"
-                  : "opacity-100 grayscale-0 z-30";
+                cardStateClass = isHovered ? "opacity-100 grayscale-0 z-40" : "opacity-100 grayscale-0 z-30";
               } else {
                 cardStateClass = "opacity-10 grayscale pointer-events-none z-10";
               }
@@ -503,16 +614,15 @@ export const PaulePerronPreset: React.FC<Props> = ({
               <motion.div
                 key={project.id}
                 drag
-                dragConstraints={containerRef}
-                dragElastic={0.2}
-                dragMomentum={true}
+                dragMomentum={false}
+                dragElastic={0.05}
                 onDragStart={() => {
-                  isDraggingRef.current = true;
+                  isDraggingCardRef.current = true;
                 }}
                 onDragEnd={() => {
                   setTimeout(() => {
-                    isDraggingRef.current = false;
-                  }, 150);
+                    isDraggingCardRef.current = false;
+                  }, 120);
                 }}
                 animate={{
                   y: config.floatY,
@@ -532,17 +642,12 @@ export const PaulePerronPreset: React.FC<Props> = ({
                 onMouseEnter={() => setHoveredProjectId(project.id)}
                 onMouseLeave={() => setHoveredProjectId(null)}
                 onClick={(e) => handleCardClick(e, project)}
-                className={`project-floating-card pointer-events-auto cursor-grab active:cursor-grabbing absolute w-24 sm:w-26 lg:w-28 xl:w-30 flex flex-col items-center gap-1.5 transition-all duration-300 touch-none select-none ${cardStateClass}`}
+                className={`project-floating-card pointer-events-auto cursor-grab active:cursor-grabbing absolute w-24 sm:w-26 lg:w-28 xl:w-30 flex flex-col items-center gap-1.5 transition-opacity duration-300 touch-none select-none ${cardStateClass}`}
               >
-                {/* Pure Square Cover Image (50% smaller, no outer rectangular boundary) */}
+                {/* Square Cover Card Image */}
                 <div
                   className={`relative w-full aspect-square overflow-hidden dynamic-radius bg-muted/20 border border-border/70 hover:border-foreground/60 transition-colors pointer-events-none select-none ${shadowClass}`}
-                  style={
-                    {
-                      userSelect: "none",
-                      WebkitUserSelect: "none",
-                    } as React.CSSProperties
-                  }
+                  style={{ userSelect: "none", WebkitUserSelect: "none" } as React.CSSProperties}
                 >
                   {project.coverImage?.url ? (
                     <img
@@ -550,12 +655,7 @@ export const PaulePerronPreset: React.FC<Props> = ({
                       alt={project.coverImage.alt || project.title}
                       draggable={false}
                       className="w-full h-full object-cover pointer-events-none select-none"
-                      style={
-                        {
-                          userSelect: "none",
-                          WebkitUserSelect: "none",
-                        } as React.CSSProperties
-                      }
+                      style={{ userSelect: "none", WebkitUserSelect: "none" } as React.CSSProperties}
                       onError={(e) => {
                         (e.target as HTMLElement).style.display = "none";
                       }}
@@ -563,7 +663,7 @@ export const PaulePerronPreset: React.FC<Props> = ({
                   ) : null}
                 </div>
 
-                {/* Single Project Name Directly Underneath (Toggled) */}
+                {/* Project Title Text */}
                 {showTitles && (
                   <div className="w-full text-center pointer-events-none select-none px-0.5">
                     <h3 className="text-[10px] sm:text-[11px] font-heading font-medium tracking-wide text-foreground uppercase truncate group-hover:text-foreground transition-colors">
@@ -575,6 +675,48 @@ export const PaulePerronPreset: React.FC<Props> = ({
             );
           })}
         </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* MIRO-STYLE FLOATING HUD TOOLBAR (Bottom-Right on Desktop)                  */}
+      {/* ========================================================================= */}
+      <div className="miro-hud hidden lg:flex items-center gap-1.5 absolute bottom-5 right-5 z-40 bg-background/80 backdrop-blur-md border border-border/50 dynamic-radius px-2 py-1 shadow-sm font-mono text-[11px] text-muted-foreground select-none pointer-events-auto">
+        <button
+          onClick={handleZoomOut}
+          className="p-1 hover:text-foreground transition-colors rounded hover:bg-muted/40"
+          title="Zoom Out (Scroll Down)"
+          aria-label="Zoom Out"
+        >
+          <ZoomOut className="w-3.5 h-3.5" />
+        </button>
+
+        <button
+          onClick={resetView}
+          className="px-1.5 py-0.5 text-[10px] tracking-wider font-medium hover:text-foreground transition-colors rounded hover:bg-muted/40"
+          title="Reset View (100%)"
+        >
+          {Math.round(zoom * 100)}%
+        </button>
+
+        <button
+          onClick={handleZoomIn}
+          className="p-1 hover:text-foreground transition-colors rounded hover:bg-muted/40"
+          title="Zoom In (Scroll Up)"
+          aria-label="Zoom In"
+        >
+          <ZoomIn className="w-3.5 h-3.5" />
+        </button>
+
+        <div className="h-3 w-[1px] bg-border/60 mx-0.5" />
+
+        <button
+          onClick={resetView}
+          className="p-1 hover:text-foreground transition-colors rounded hover:bg-muted/40"
+          title="Reset Pan & Zoom"
+          aria-label="Reset View"
+        >
+          <RotateCcw className="w-3 h-3" />
+        </button>
       </div>
     </div>
   );
