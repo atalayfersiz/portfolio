@@ -280,11 +280,33 @@ export const PaulePerronPreset: React.FC<Props> = ({
   }, []);
 
   const handleZoomIn = () => {
-    setZoom((prev) => Math.min(Number((prev + 0.15).toFixed(2)), 2.5));
+    const container = containerRef.current;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const nextZoom = Math.min(Number((zoom * 1.2).toFixed(3)), 3.0);
+    const zoomRatio = nextZoom / zoom;
+    setPan((currPan) => ({
+      x: centerX - (centerX - currPan.x) * zoomRatio,
+      y: centerY - (centerY - currPan.y) * zoomRatio,
+    }));
+    setZoom(nextZoom);
   };
 
   const handleZoomOut = () => {
-    setZoom((prev) => Math.max(Number((prev - 0.15).toFixed(2)), 0.4));
+    const container = containerRef.current;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const nextZoom = Math.max(Number((zoom / 1.2).toFixed(3)), 0.35);
+    const zoomRatio = nextZoom / zoom;
+    setPan((currPan) => ({
+      x: centerX - (centerX - currPan.x) * zoomRatio,
+      y: centerY - (centerY - currPan.y) * zoomRatio,
+    }));
+    setZoom(nextZoom);
   };
 
   // Wheel Zoom & Pan handler (Miro style)
@@ -521,10 +543,10 @@ export const PaulePerronPreset: React.FC<Props> = ({
       {/* DESKTOP INFINITE MIRO CANVAS (>= lg): Pan, Zoom, Drag & Orbit             */}
       {/* ========================================================================= */}
       <div
-        className="hidden lg:block w-full h-full absolute inset-0 origin-center transition-transform duration-75 will-change-transform"
+        className="hidden lg:block w-full h-full absolute inset-0 will-change-transform"
         style={{
           transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-          transformOrigin: "center center",
+          transformOrigin: "0 0",
         }}
       >
         {/* Center Category Typography Menu */}
