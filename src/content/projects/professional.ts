@@ -171,7 +171,7 @@ export const professionalProjects: Project[] = [
   },
   {
     id: "mavisehir",
-    title: "FOLKART NOBILIS MAVISEHIR",
+    title: "MAVISEHIR",
     slug: "mavisehir",
     category: "professional",
     categories: ["professional", "selected"],
@@ -250,7 +250,7 @@ export const professionalProjects: Project[] = [
   },
   {
     id: "urla",
-    title: "URLA RESIDENTIAL SETTLEMENT",
+    title: "URLA",
     slug: "urla",
     category: "professional",
     categories: ["professional"],
