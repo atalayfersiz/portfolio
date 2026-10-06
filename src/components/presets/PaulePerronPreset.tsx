@@ -20,221 +20,235 @@ const CATEGORIES: { id: Category; label: string; isBold?: boolean }[] = [
   { id: "explorations", label: "e x p l o r a t i o n s" },
 ];
 
-// Shuffled spatial positions intermixing Academic, Professional, and Parametric projects across canvas
+// Perfectly balanced, non-colliding spatial positions distributed across the canvas
 const FLOATING_LAYOUT: Record<
   string,
   {
-    desktop: { top?: string; bottom?: string; left?: string; right?: string };
+    desktop: { top: string; left: string };
     duration: number;
     floatY: number[];
     floatX: number[];
     floatRotate: number[];
   }
 > = {
-  // Top Row
+  // ==========================================
+  // ROW 1 — Top Edge (Y: ~3% - 4%)
+  // ==========================================
   "tower-in-kadikoy": {
-    desktop: { top: "5%", left: "4%" },
+    desktop: { top: "3%", left: "3%" },
     duration: 8.2,
-    floatY: [0, 10, -8, 6, 0],
-    floatX: [0, -7, 5, -4, 0],
-    floatRotate: [0.5, -0.7, 0.6, -0.4, 0.5],
+    floatY: [0, 4, -4, 2, 0],
+    floatX: [0, -3, 2, -2, 0],
+    floatRotate: [0.3, -0.4, 0.3, -0.2, 0.3],
   },
   tidescape: {
-    desktop: { top: "4%", left: "26%" },
+    desktop: { top: "3%", left: "25%" },
     duration: 7.2,
-    floatY: [0, -11, 7, -8, 0],
-    floatX: [0, 7, -5, 5, 0],
-    floatRotate: [-0.4, 0.7, -0.5, 0.5, -0.4],
+    floatY: [0, -4, 3, -3, 0],
+    floatX: [0, 3, -2, 2, 0],
+    floatRotate: [-0.3, 0.4, -0.3, 0.2, -0.3],
   },
   "curve-growth": {
-    desktop: { top: "5%", left: "48%" },
+    desktop: { top: "3%", left: "47%" },
     duration: 7.5,
-    floatY: [0, 9, -7, 6, 0],
-    floatX: [0, -6, 6, -5, 0],
-    floatRotate: [0.6, -0.5, 0.4, -0.6, 0.6],
+    floatY: [0, 3, -4, 2, 0],
+    floatX: [0, -2, 3, -2, 0],
+    floatRotate: [0.4, -0.3, 0.3, -0.4, 0.4],
   },
   kartalkaya: {
-    desktop: { top: "4%", right: "26%" },
+    desktop: { top: "3%", left: "71%" },
     duration: 7.8,
-    floatY: [0, 10, -8, 6, 0],
-    floatX: [0, -6, 7, -4, 0],
-    floatRotate: [0.4, -0.6, 0.5, -0.4, 0.4],
+    floatY: [0, 4, -3, 3, 0],
+    floatX: [0, -3, 3, -2, 0],
+    floatRotate: [0.3, -0.4, 0.3, -0.2, 0.3],
   },
   "tower-in-ihsaniye": {
-    desktop: { top: "6%", right: "4%" },
+    desktop: { top: "3%", left: "91%" },
     duration: 6.8,
-    floatY: [0, -8, 10, -6, 0],
-    floatX: [0, -7, 6, -7, 0],
-    floatRotate: [-0.5, 0.7, -0.6, 0.5, -0.5],
+    floatY: [0, -3, 4, -2, 0],
+    floatX: [0, -3, 2, -3, 0],
+    floatRotate: [-0.3, 0.4, -0.3, 0.3, -0.3],
   },
 
-  // Upper-Mid Row
+  // ==========================================
+  // ROW 2 — Upper Mid (Y: ~19% - 21%)
+  // ==========================================
   "pb-workshop": {
-    desktop: { top: "33%", left: "3%" },
+    desktop: { top: "20%", left: "2%" },
     duration: 8.5,
-    floatY: [0, 9, -8, 6, 0],
-    floatX: [0, -5, 7, -4, 0],
-    floatRotate: [0.5, -0.6, 0.5, -0.4, 0.5],
+    floatY: [0, 4, -3, 2, 0],
+    floatX: [0, -2, 3, -2, 0],
+    floatRotate: [0.3, -0.3, 0.3, -0.2, 0.3],
+  },
+  cb: {
+    desktop: { top: "19%", left: "16%" },
+    duration: 7.3,
+    floatY: [0, 3, -4, 2, 0],
+    floatX: [0, -3, 2, -2, 0],
+    floatRotate: [0.3, -0.3, 0.3, -0.2, 0.3],
   },
   origami: {
-    desktop: { top: "31%", left: "22%" },
+    desktop: { top: "20%", left: "30%" },
     duration: 8.1,
-    floatY: [0, -10, 8, -6, 0],
-    floatX: [0, 6, -7, 5, 0],
-    floatRotate: [-0.6, 0.5, -0.5, 0.6, -0.6],
-  },
-  fields: {
-    desktop: { top: "31%", right: "22%" },
-    duration: 7.4,
-    floatY: [0, 9, -9, 7, 0],
-    floatX: [0, -6, 6, -5, 0],
-    floatRotate: [0.5, -0.6, 0.6, -0.4, 0.5],
-  },
-  canography: {
-    desktop: { top: "33%", right: "3%" },
-    duration: 6.9,
-    floatY: [0, -9, 8, -5, 0],
-    floatX: [0, 7, -6, 5, 0],
-    floatRotate: [-0.5, 0.6, -0.4, 0.5, -0.5],
-  },
-
-  // Lower-Mid Row
-  aggregation: {
-    desktop: { top: "58%", left: "10%" },
-    duration: 7.9,
-    floatY: [0, 8, -9, 6, 0],
-    floatX: [0, -6, 5, -4, 0],
-    floatRotate: [0.4, -0.5, 0.5, -0.4, 0.4],
-  },
-  amorf: {
-    desktop: { top: "59%", left: "29%" },
-    duration: 7.1,
-    floatY: [0, -8, 6, -7, 0],
-    floatX: [0, 6, -5, 4, 0],
-    floatRotate: [-0.4, 0.6, -0.5, 0.4, -0.4],
-  },
-  mdc: {
-    desktop: { top: "59%", right: "29%" },
-    duration: 7.0,
-    floatY: [0, 8, -9, 6, 0],
-    floatX: [0, -6, 5, -5, 0],
-    floatRotate: [0.5, -0.5, 0.4, -0.4, 0.5],
-  },
-  particle: {
-    desktop: { top: "58%", right: "10%" },
-    duration: 7.7,
-    floatY: [0, -9, 7, -6, 0],
-    floatX: [0, 7, -6, 5, 0],
-    floatRotate: [-0.5, 0.6, -0.5, 0.4, -0.5],
-  },
-
-  // Mid-Floating Intermediate Cluster
-  cb: {
-    desktop: { top: "19%", left: "13%" },
-    duration: 7.3,
-    floatY: [0, 8, -7, 5, 0],
-    floatX: [0, -5, 6, -4, 0],
-    floatRotate: [0.5, -0.4, 0.5, -0.3, 0.5],
+    floatY: [0, -4, 3, -3, 0],
+    floatX: [0, 3, -3, 2, 0],
+    floatRotate: [-0.4, 0.3, -0.3, 0.3, -0.4],
   },
   hansapocene: {
-    desktop: { top: "19%", right: "13%" },
+    desktop: { top: "20%", left: "70%" },
     duration: 8.0,
-    floatY: [0, -9, 8, -6, 0],
-    floatX: [0, 6, -5, 4, 0],
-    floatRotate: [-0.4, 0.6, -0.5, 0.4, -0.4],
-  },
-  if: {
-    desktop: { bottom: "18%", left: "16%" },
-    duration: 7.6,
-    floatY: [0, 9, -8, 6, 0],
-    floatX: [0, -6, 5, -4, 0],
-    floatRotate: [0.5, -0.5, 0.4, -0.4, 0.5],
-  },
-  "steglitzer-kreisel": {
-    desktop: { bottom: "18%", right: "16%" },
-    duration: 8.2,
-    floatY: [0, -8, 7, -5, 0],
-    floatX: [0, 5, -6, 4, 0],
-    floatRotate: [-0.4, 0.5, -0.4, 0.5, -0.4],
-  },
-
-  // Bottom Row
-  "iris-tower": {
-    desktop: { bottom: "4%", left: "4%" },
-    duration: 8.8,
-    floatY: [0, 9, -10, 7, 0],
-    floatX: [0, 6, -6, 5, 0],
-    floatRotate: [0.6, -0.5, 0.7, -0.5, 0.6],
-  },
-  "blended-mesh": {
-    desktop: { bottom: "3%", left: "24%" },
-    duration: 8.3,
-    floatY: [0, -8, 9, -5, 0],
-    floatX: [0, 6, -6, 4, 0],
-    floatRotate: [-0.4, 0.5, -0.5, 0.4, -0.4],
-  },
-  "kairo-looro": {
-    desktop: { bottom: "3%", left: "44%" },
-    duration: 8.0,
-    floatY: [0, -10, 8, -5, 0],
-    floatX: [0, 6, -5, 4, 0],
-    floatRotate: [-0.4, 0.5, -0.5, 0.4, -0.4],
-  },
-  roboshore: {
-    desktop: { bottom: "4%", right: "4%" },
-    duration: 7.8,
-    floatY: [0, -10, 8, -6, 0],
-    floatX: [0, 7, -6, 5, 0],
-    floatRotate: [0.4, -0.6, 0.5, -0.4, 0.4],
-  },
-  "kreuzberg-tower-to-daw": {
-    desktop: { bottom: "4%", right: "24%" },
-    duration: 8.4,
-    floatY: [0, 8, -9, 6, 0],
-    floatX: [0, -5, 6, -4, 0],
-    floatRotate: [0.5, -0.6, 0.4, -0.5, 0.5],
-  },
-  "friedrichstrasse-to-daw": {
-    desktop: { bottom: "4%", right: "44%" },
-    duration: 7.9,
-    floatY: [0, -9, 8, -5, 0],
-    floatX: [0, 6, -5, 4, 0],
-    floatRotate: [-0.4, 0.5, -0.6, 0.4, -0.4],
-  },
-  "unite-dhabitation-to-daw": {
-    desktop: { top: "45%", left: "1%" },
-    duration: 8.6,
-    floatY: [0, 9, -7, 6, 0],
-    floatX: [0, -6, 5, -4, 0],
-    floatRotate: [0.4, -0.5, 0.6, -0.4, 0.4],
-  },
-  "james-simon-galerie-audio-path": {
-    desktop: { top: "45%", right: "1%" },
-    duration: 8.1,
-    floatY: [0, -8, 9, -6, 0],
-    floatX: [0, 5, -6, 5, 0],
-    floatRotate: [-0.5, 0.4, -0.5, 0.6, -0.5],
-  },
-  "denkmal-fuer-die-ermordeten-juden-europas": {
-    desktop: { bottom: "45%", left: "1%" },
-    duration: 8.3,
-    floatY: [0, 8, -9, 5, 0],
-    floatX: [0, -5, 6, -4, 0],
-    floatRotate: [0.5, -0.4, 0.5, -0.3, 0.5],
-  },
-  mavisehir: {
-    desktop: { bottom: "45%", right: "1%" },
-    duration: 8.0,
-    floatY: [0, -9, 7, -6, 0],
-    floatX: [0, 6, -5, 4, 0],
-    floatRotate: [-0.4, 0.5, -0.4, 0.5, -0.4],
+    floatY: [0, -4, 3, -2, 0],
+    floatX: [0, 3, -2, 2, 0],
+    floatRotate: [-0.3, 0.4, -0.3, 0.2, -0.3],
   },
   urla: {
-    desktop: { top: "12%", left: "37%" },
+    desktop: { top: "19%", left: "84%" },
     duration: 8.5,
-    floatY: [0, 8, -8, 6, 0],
-    floatX: [0, -5, 7, -4, 0],
-    floatRotate: [0.4, -0.6, 0.5, -0.4, 0.4],
+    floatY: [0, 3, -4, 2, 0],
+    floatX: [0, -2, 3, -2, 0],
+    floatRotate: [0.3, -0.4, 0.3, -0.2, 0.3],
+  },
+  fields: {
+    desktop: { top: "20%", left: "94%" },
+    duration: 7.4,
+    floatY: [0, 4, -3, 3, 0],
+    floatX: [0, -2, 3, -2, 0],
+    floatRotate: [0.3, -0.4, 0.3, -0.2, 0.3],
+  },
+
+  // ==========================================
+  // ROW 3 — Center Outer Wings (Y: ~39% - 40%)
+  // ==========================================
+  "unite-dhabitation-to-daw": {
+    desktop: { top: "40%", left: "3%" },
+    duration: 8.6,
+    floatY: [0, 4, -3, 2, 0],
+    floatX: [0, -3, 2, -2, 0],
+    floatRotate: [0.3, -0.3, 0.3, -0.2, 0.3],
+  },
+  aggregation: {
+    desktop: { top: "39%", left: "18%" },
+    duration: 7.9,
+    floatY: [0, 3, -4, 2, 0],
+    floatX: [0, -2, 2, -2, 0],
+    floatRotate: [0.2, -0.3, 0.3, -0.2, 0.2],
+  },
+  mdc: {
+    desktop: { top: "39%", left: "80%" },
+    duration: 7.0,
+    floatY: [0, 3, -4, 2, 0],
+    floatX: [0, -2, 2, -2, 0],
+    floatRotate: [0.3, -0.3, 0.2, -0.2, 0.3],
+  },
+  "james-simon-galerie-audio-path": {
+    desktop: { top: "40%", left: "93%" },
+    duration: 8.1,
+    floatY: [0, -3, 4, -2, 0],
+    floatX: [0, 2, -3, 2, 0],
+    floatRotate: [-0.3, 0.3, -0.3, 0.3, -0.3],
+  },
+
+  // ==========================================
+  // ROW 4 — Lower Mid Wings (Y: ~59% - 60%)
+  // ==========================================
+  "denkmal-fuer-die-ermordeten-juden-europas": {
+    desktop: { top: "59%", left: "3%" },
+    duration: 8.3,
+    floatY: [0, 3, -4, 2, 0],
+    floatX: [0, -2, 3, -2, 0],
+    floatRotate: [0.3, -0.3, 0.3, -0.2, 0.3],
+  },
+  amorf: {
+    desktop: { top: "60%", left: "18%" },
+    duration: 7.1,
+    floatY: [0, -3, 3, -3, 0],
+    floatX: [0, 3, -2, 2, 0],
+    floatRotate: [-0.3, 0.3, -0.3, 0.2, -0.3],
+  },
+  particle: {
+    desktop: { top: "60%", left: "80%" },
+    duration: 7.7,
+    floatY: [0, -4, 3, -2, 0],
+    floatX: [0, 3, -3, 2, 0],
+    floatRotate: [-0.3, 0.3, -0.3, 0.2, -0.3],
+  },
+  mavisehir: {
+    desktop: { top: "59%", left: "93%" },
+    duration: 8.0,
+    floatY: [0, -4, 3, -3, 0],
+    floatX: [0, 3, -2, 2, 0],
+    floatRotate: [-0.3, 0.3, -0.3, 0.3, -0.3],
+  },
+
+  // ==========================================
+  // ROW 5 — Lower Outer (Y: ~77% - 79%)
+  // ==========================================
+  if: {
+    desktop: { top: "78%", left: "2%" },
+    duration: 7.6,
+    floatY: [0, 4, -3, 2, 0],
+    floatX: [0, -3, 2, -2, 0],
+    floatRotate: [0.3, -0.3, 0.2, -0.2, 0.3],
+  },
+  "iris-tower": {
+    desktop: { top: "79%", left: "16%" },
+    duration: 8.8,
+    floatY: [0, 4, -4, 3, 0],
+    floatX: [0, 3, -3, 2, 0],
+    floatRotate: [0.4, -0.3, 0.4, -0.3, 0.4],
+  },
+  "blended-mesh": {
+    desktop: { top: "78%", left: "30%" },
+    duration: 8.3,
+    floatY: [0, -3, 4, -2, 0],
+    floatX: [0, 3, -3, 2, 0],
+    floatRotate: [-0.3, 0.3, -0.3, 0.2, -0.3],
+  },
+  "steglitzer-kreisel": {
+    desktop: { top: "78%", left: "70%" },
+    duration: 8.2,
+    floatY: [0, -3, 3, -2, 0],
+    floatX: [0, 2, -3, 2, 0],
+    floatRotate: [-0.3, 0.3, -0.2, 0.3, -0.3],
+  },
+  "kreuzberg-tower-to-daw": {
+    desktop: { top: "79%", left: "84%" },
+    duration: 8.4,
+    floatY: [0, 3, -4, 2, 0],
+    floatX: [0, -2, 3, -2, 0],
+    floatRotate: [0.3, -0.4, 0.2, -0.3, 0.3],
+  },
+  canography: {
+    desktop: { top: "78%", left: "94%" },
+    duration: 6.9,
+    floatY: [0, -4, 3, -2, 0],
+    floatX: [0, 3, -2, 2, 0],
+    floatRotate: [-0.3, 0.3, -0.2, 0.3, -0.3],
+  },
+
+  // ==========================================
+  // ROW 6 — Bottom Baseline (Y: ~92% - 93%)
+  // ==========================================
+  "kairo-looro": {
+    desktop: { top: "92%", left: "22%" },
+    duration: 8.0,
+    floatY: [0, -4, 3, -2, 0],
+    floatX: [0, 3, -2, 2, 0],
+    floatRotate: [-0.3, 0.3, -0.3, 0.2, -0.3],
+  },
+  "friedrichstrasse-to-daw": {
+    desktop: { top: "92%", left: "47%" },
+    duration: 7.9,
+    floatY: [0, -3, 3, -2, 0],
+    floatX: [0, 3, -2, 2, 0],
+    floatRotate: [-0.2, 0.3, -0.3, 0.2, -0.2],
+  },
+  roboshore: {
+    desktop: { top: "92%", left: "73%" },
+    duration: 7.8,
+    floatY: [0, -4, 3, -3, 0],
+    floatX: [0, 3, -3, 2, 0],
+    floatRotate: [0.3, -0.4, 0.3, -0.2, 0.3],
   },
 };
 
@@ -513,9 +527,7 @@ export const PaulePerronPreset: React.FC<Props> = ({
                 }}
                 style={{
                   top: config.desktop.top,
-                  bottom: config.desktop.bottom,
                   left: config.desktop.left,
-                  right: config.desktop.right,
                 }}
                 onMouseEnter={() => setHoveredProjectId(project.id)}
                 onMouseLeave={() => setHoveredProjectId(null)}
