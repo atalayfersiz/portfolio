@@ -120,7 +120,11 @@ export default function ProjectDetailClient({ project, otherProjects }: Props) {
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground transition-colors duration-300">
       {/* Top Header */}
-      <Header onOpenConfig={() => setIsConfigOpen(true)} />
+      <Header
+        onOpenConfig={() => setIsConfigOpen(true)}
+        darkMode={darkMode}
+        onToggleDarkMode={toggleDarkMode}
+      />
 
       {/* Main Content Presentation */}
       <main className="flex-1 max-w-5xl w-full mx-auto px-6 py-12">
@@ -131,7 +135,7 @@ export default function ProjectDetailClient({ project, otherProjects }: Props) {
             className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest"
           >
             <ArrowLeft className="w-3.5 h-3.5 stroke-[1.5]" />
-            <span>back to work</span>
+            <span>back to works</span>
           </Link>
           <div className="flex items-center gap-3 text-muted-foreground uppercase tracking-widest">
             <span className="text-foreground font-medium">{project.category}</span>

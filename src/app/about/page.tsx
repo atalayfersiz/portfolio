@@ -43,7 +43,11 @@ export default function AboutPage() {
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground transition-colors duration-300">
       {/* Top Header */}
-      <Header onOpenConfig={() => setIsConfigOpen(true)} />
+      <Header
+        onOpenConfig={() => setIsConfigOpen(true)}
+        darkMode={darkMode}
+        onToggleDarkMode={toggleDarkMode}
+      />
 
       {/* Main Text-Only About Content (No Icons, No Buttons) */}
       <main className="flex-1 max-w-4xl mx-auto px-6 py-16 w-full space-y-16">

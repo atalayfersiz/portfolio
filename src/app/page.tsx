@@ -48,7 +48,11 @@ export default function Home() {
   return (
     <div className="h-screen w-screen overflow-hidden flex flex-col bg-background text-foreground transition-colors duration-300">
       {/* Header */}
-      <Header onOpenConfig={() => setIsConfigOpen(true)} />
+      <Header
+        onOpenConfig={() => setIsConfigOpen(true)}
+        darkMode={darkMode}
+        onToggleDarkMode={toggleDarkMode}
+      />
 
       {/* Dynamic Layout Preset Renderer — Full Viewport Miro Canvas */}
       <main className="flex-1 relative w-full h-[calc(100vh-4rem)] overflow-hidden">
