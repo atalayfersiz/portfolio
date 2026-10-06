@@ -259,39 +259,60 @@ export const PaulePerronPreset: React.FC<Props> = ({
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
   const [hoveredProjectId, setHoveredProjectId] = useState<string | null>(null);
 
-  // Miro Canvas Pan & Zoom State
-  const [zoom, setZoom] = useState<number>(1.0);
-  const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  // Single unified transform state (atomic 2D affine transform)
+  const [transform, setTransform] = useState<{ x: number; y: number; scale: number }>({
+    x: 0,
+    y: 0,
+    scale: 1.0,
+  });
+
   const [isPanning, setIsPanning] = useState<boolean>(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const transformRef = useRef<{ x: number; y: number; scale: number }>({
+    x: 0,
+    y: 0,
+    scale: 1.0,
+  });
+
   const isDraggingCardRef = useRef<boolean>(false);
-  const panStartRef = useRef<{ startX: number; startY: number; initPanX: number; initPanY: number }>({
+  const panStartRef = useRef<{ startX: number; startY: number; initX: number; initY: number }>({
     startX: 0,
     startY: 0,
-    initPanX: 0,
-    initPanY: 0,
+    initX: 0,
+    initY: 0,
   });
+
+  // Keep transformRef synchronously in sync with state
+  useEffect(() => {
+    transformRef.current = transform;
+  }, [transform]);
 
   // Reset Viewport to Default
   const resetView = useCallback(() => {
-    setZoom(1.0);
-    setPan({ x: 0, y: 0 });
+    const next = { x: 0, y: 0, scale: 1.0 };
+    transformRef.current = next;
+    setTransform(next);
   }, []);
 
+  // Viewport-centered HUD zoom buttons
   const handleZoomIn = () => {
     const container = containerRef.current;
     if (!container) return;
     const rect = container.getBoundingClientRect();
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
-    const nextZoom = Math.min(Number((zoom * 1.2).toFixed(3)), 3.0);
-    const zoomRatio = nextZoom / zoom;
-    setPan((currPan) => ({
-      x: centerX - (centerX - currPan.x) * zoomRatio,
-      y: centerY - (centerY - currPan.y) * zoomRatio,
-    }));
-    setZoom(nextZoom);
+    const curr = transformRef.current;
+    const newScale = Math.min(Number((curr.scale * 1.2).toFixed(3)), 3.0);
+    const ratio = newScale / curr.scale;
+
+    const next = {
+      x: centerX - (centerX - curr.x) * ratio,
+      y: centerY - (centerY - curr.y) * ratio,
+      scale: newScale,
+    };
+    transformRef.current = next;
+    setTransform(next);
   };
 
   const handleZoomOut = () => {
@@ -300,45 +321,60 @@ export const PaulePerronPreset: React.FC<Props> = ({
     const rect = container.getBoundingClientRect();
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
-    const nextZoom = Math.max(Number((zoom / 1.2).toFixed(3)), 0.35);
-    const zoomRatio = nextZoom / zoom;
-    setPan((currPan) => ({
-      x: centerX - (centerX - currPan.x) * zoomRatio,
-      y: centerY - (centerY - currPan.y) * zoomRatio,
-    }));
-    setZoom(nextZoom);
+    const curr = transformRef.current;
+    const newScale = Math.max(Number((curr.scale / 1.2).toFixed(3)), 0.35);
+    const ratio = newScale / curr.scale;
+
+    const next = {
+      x: centerX - (centerX - curr.x) * ratio,
+      y: centerY - (centerY - curr.y) * ratio,
+      scale: newScale,
+    };
+    transformRef.current = next;
+    setTransform(next);
   };
 
-  // Wheel Zoom & Pan handler (Miro style)
+  // Precise Cursor-Anchored Wheel Zoom Handler
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
     const handleWheel = (e: WheelEvent) => {
-      // Prevent browser default scroll
+      // Prevent browser default window scrolling
       e.preventDefault();
 
       const rect = container.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
 
-      // Dedicated mouse wheel zoom in / out centered at cursor pointer
-      const zoomIntensity = 0.0018;
-      const zoomDelta = Math.exp(-e.deltaY * zoomIntensity);
+      // Determine zoom step: smooth continuous for trackpads, stepped for physical scroll wheels
+      let zoomFactor: number;
+      if (Math.abs(e.deltaY) >= 50) {
+        // Discrete mouse wheel notch
+        zoomFactor = e.deltaY < 0 ? 1.12 : 0.89;
+      } else {
+        // Continuous precision trackpad pinch / micro scroll
+        zoomFactor = Math.exp(-e.deltaY * 0.003);
+      }
 
-      setZoom((currZoom) => {
-        const nextZoom = Math.min(Math.max(currZoom * zoomDelta, 0.35), 3.0);
-        if (Math.abs(nextZoom - currZoom) < 0.0001) return currZoom;
+      const curr = transformRef.current;
+      const newScale = Math.min(Math.max(curr.scale * zoomFactor, 0.35), 3.0);
+      if (Math.abs(newScale - curr.scale) < 0.0001) return;
 
-        const zoomRatio = nextZoom / currZoom;
+      const ratio = newScale / curr.scale;
 
-        setPan((currPan) => ({
-          x: mouseX - (mouseX - currPan.x) * zoomRatio,
-          y: mouseY - (mouseY - currPan.y) * zoomRatio,
-        }));
+      // Anchor zoom exactly to (mouseX, mouseY)
+      const newX = mouseX - (mouseX - curr.x) * ratio;
+      const newY = mouseY - (mouseY - curr.y) * ratio;
 
-        return nextZoom;
-      });
+      const next = {
+        x: newX,
+        y: newY,
+        scale: newScale,
+      };
+
+      transformRef.current = next;
+      setTransform(next);
     };
 
     container.addEventListener("wheel", handleWheel, { passive: false });
@@ -347,9 +383,8 @@ export const PaulePerronPreset: React.FC<Props> = ({
     };
   }, []);
 
-  // Mouse drag panning on background
+  // Mouse drag panning on canvas background
   const handleMouseDown = (e: React.MouseEvent) => {
-    // If clicking a card, button, or link, do not initiate background canvas pan
     const target = e.target as HTMLElement;
     if (
       target.closest(".project-floating-card") ||
@@ -363,8 +398,8 @@ export const PaulePerronPreset: React.FC<Props> = ({
     panStartRef.current = {
       startX: e.clientX,
       startY: e.clientY,
-      initPanX: pan.x,
-      initPanY: pan.y,
+      initX: transformRef.current.x,
+      initY: transformRef.current.y,
     };
   };
 
@@ -372,10 +407,13 @@ export const PaulePerronPreset: React.FC<Props> = ({
     if (!isPanning) return;
     const dx = e.clientX - panStartRef.current.startX;
     const dy = e.clientY - panStartRef.current.startY;
-    setPan({
-      x: panStartRef.current.initPanX + dx,
-      y: panStartRef.current.initPanY + dy,
-    });
+    const next = {
+      ...transformRef.current,
+      x: panStartRef.current.initX + dx,
+      y: panStartRef.current.initY + dy,
+    };
+    transformRef.current = next;
+    setTransform(next);
   };
 
   const handleMouseUp = () => {
@@ -435,16 +473,6 @@ export const PaulePerronPreset: React.FC<Props> = ({
         isPanning ? "cursor-grabbing" : "cursor-grab"
       }`}
     >
-      {/* Background Miro Dot Grid that translates with pan & zoom */}
-      <div
-        className="absolute inset-0 pointer-events-none opacity-[0.04] dark:opacity-[0.08] transition-[opacity] duration-300"
-        style={{
-          backgroundImage: "radial-gradient(currentColor 1px, transparent 1px)",
-          backgroundSize: `${28 * zoom}px ${28 * zoom}px`,
-          backgroundPosition: `${pan.x}px ${pan.y}px`,
-        }}
-      />
-
       {/* ========================================================================= */}
       {/* MOBILE VIEW (< lg): 3-Column Touch Grid                                   */}
       {/* ========================================================================= */}
@@ -545,10 +573,23 @@ export const PaulePerronPreset: React.FC<Props> = ({
       <div
         className="hidden lg:block w-full h-full absolute inset-0 will-change-transform"
         style={{
-          transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+          transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
           transformOrigin: "0 0",
         }}
       >
+        {/* Background Dot Grid that scales & translates seamlessly with the canvas */}
+        <div
+          className="absolute pointer-events-none opacity-[0.04] dark:opacity-[0.08]"
+          style={{
+            top: "-150%",
+            left: "-150%",
+            width: "400%",
+            height: "400%",
+            backgroundImage: "radial-gradient(currentColor 1px, transparent 1px)",
+            backgroundSize: "28px 28px",
+          }}
+        />
+
         {/* Center Category Typography Menu */}
         <div className="absolute inset-0 flex flex-col justify-center items-center pointer-events-none z-10">
           <div className="paule-container relative flex flex-col justify-center items-center gap-4 text-center pointer-events-auto">
@@ -713,7 +754,7 @@ export const PaulePerronPreset: React.FC<Props> = ({
           className="px-1.5 py-0.5 text-[10px] tracking-wider font-medium hover:text-foreground transition-colors rounded hover:bg-muted/40"
           title="Reset View (100%)"
         >
-          {Math.round(zoom * 100)}%
+          {Math.round(transform.scale * 100)}%
         </button>
 
         <button
