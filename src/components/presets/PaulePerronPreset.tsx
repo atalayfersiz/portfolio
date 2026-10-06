@@ -258,23 +258,26 @@ export const PaulePerronPreset: React.FC<Props> = ({
   const router = useRouter();
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
   const [hoveredProjectId, setHoveredProjectId] = useState<string | null>(null);
-
-  // Single unified transform state (atomic 2D affine transform)
-  const [transform, setTransform] = useState<{ x: number; y: number; scale: number }>({
-    x: 0,
-    y: 0,
-    scale: 1.0,
-  });
-
+  const [displayZoom, setDisplayZoom] = useState<number>(100);
   const [isPanning, setIsPanning] = useState<boolean>(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const transformRef = useRef<{ x: number; y: number; scale: number }>({
+  const canvasRef = useRef<HTMLDivElement>(null);
+
+  // Target and Current Transform States for smooth 60/120fps interpolated physics
+  const targetTransformRef = useRef<{ x: number; y: number; scale: number }>({
     x: 0,
     y: 0,
     scale: 1.0,
   });
 
+  const currentTransformRef = useRef<{ x: number; y: number; scale: number }>({
+    x: 0,
+    y: 0,
+    scale: 1.0,
+  });
+
+  const animFrameRef = useRef<number | null>(null);
   const isDraggingCardRef = useRef<boolean>(false);
   const panStartRef = useRef<{ startX: number; startY: number; initX: number; initY: number }>({
     startX: 0,
@@ -283,17 +286,54 @@ export const PaulePerronPreset: React.FC<Props> = ({
     initY: 0,
   });
 
-  // Keep transformRef synchronously in sync with state
-  useEffect(() => {
-    transformRef.current = transform;
-  }, [transform]);
+  // Smooth lerp loop
+  const updateTransform = useCallback(() => {
+    const target = targetTransformRef.current;
+    const current = currentTransformRef.current;
+
+    // Smooth easing interpolation factor (0.18 = responsive & fluid)
+    const lerpFactor = 0.18;
+
+    const dx = target.x - current.x;
+    const dy = target.y - current.y;
+    const ds = target.scale - current.scale;
+
+    const isSettled = Math.abs(dx) < 0.05 && Math.abs(dy) < 0.05 && Math.abs(ds) < 0.0005;
+
+    if (isSettled) {
+      current.x = target.x;
+      current.y = target.y;
+      current.scale = target.scale;
+    } else {
+      current.x += dx * lerpFactor;
+      current.y += dy * lerpFactor;
+      current.scale += ds * lerpFactor;
+    }
+
+    if (canvasRef.current) {
+      canvasRef.current.style.transform = `translate3d(${current.x}px, ${current.y}px, 0) scale(${current.scale})`;
+    }
+
+    setDisplayZoom(Math.round(current.scale * 100));
+
+    if (!isSettled) {
+      animFrameRef.current = requestAnimationFrame(updateTransform);
+    } else {
+      animFrameRef.current = null;
+    }
+  }, []);
+
+  const triggerAnimation = useCallback(() => {
+    if (!animFrameRef.current) {
+      animFrameRef.current = requestAnimationFrame(updateTransform);
+    }
+  }, [updateTransform]);
 
   // Reset Viewport to Default
   const resetView = useCallback(() => {
-    const next = { x: 0, y: 0, scale: 1.0 };
-    transformRef.current = next;
-    setTransform(next);
-  }, []);
+    targetTransformRef.current = { x: 0, y: 0, scale: 1.0 };
+    triggerAnimation();
+  }, [triggerAnimation]);
 
   // Viewport-centered HUD zoom buttons
   const handleZoomIn = () => {
@@ -302,17 +342,15 @@ export const PaulePerronPreset: React.FC<Props> = ({
     const rect = container.getBoundingClientRect();
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
-    const curr = transformRef.current;
-    const newScale = Math.min(Number((curr.scale * 1.2).toFixed(3)), 3.0);
-    const ratio = newScale / curr.scale;
+    const target = targetTransformRef.current;
+    const newScale = Math.min(Number((target.scale * 1.25).toFixed(3)), 3.0);
+    const ratio = newScale / target.scale;
 
-    const next = {
-      x: centerX - (centerX - curr.x) * ratio,
-      y: centerY - (centerY - curr.y) * ratio,
-      scale: newScale,
-    };
-    transformRef.current = next;
-    setTransform(next);
+    target.x = centerX - (centerX - target.x) * ratio;
+    target.y = centerY - (centerY - target.y) * ratio;
+    target.scale = newScale;
+
+    triggerAnimation();
   };
 
   const handleZoomOut = () => {
@@ -321,67 +359,57 @@ export const PaulePerronPreset: React.FC<Props> = ({
     const rect = container.getBoundingClientRect();
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
-    const curr = transformRef.current;
-    const newScale = Math.max(Number((curr.scale / 1.2).toFixed(3)), 0.35);
-    const ratio = newScale / curr.scale;
+    const target = targetTransformRef.current;
+    const newScale = Math.max(Number((target.scale / 1.25).toFixed(3)), 0.35);
+    const ratio = newScale / target.scale;
 
-    const next = {
-      x: centerX - (centerX - curr.x) * ratio,
-      y: centerY - (centerY - curr.y) * ratio,
-      scale: newScale,
-    };
-    transformRef.current = next;
-    setTransform(next);
+    target.x = centerX - (centerX - target.x) * ratio;
+    target.y = centerY - (centerY - target.y) * ratio;
+    target.scale = newScale;
+
+    triggerAnimation();
   };
 
-  // Precise Cursor-Anchored Wheel Zoom Handler
+  // Precise Cursor-Anchored Smooth Wheel Zoom Handler
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
     const handleWheel = (e: WheelEvent) => {
-      // Prevent browser default window scrolling
       e.preventDefault();
 
       const rect = container.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
 
-      // Determine zoom step: smooth continuous for trackpads, stepped for physical scroll wheels
       let zoomFactor: number;
       if (Math.abs(e.deltaY) >= 50) {
-        // Discrete mouse wheel notch
-        zoomFactor = e.deltaY < 0 ? 1.12 : 0.89;
+        // Discrete mouse wheel notch: smooth 15% ratio
+        zoomFactor = e.deltaY < 0 ? 1.15 : 0.87;
       } else {
-        // Continuous precision trackpad pinch / micro scroll
-        zoomFactor = Math.exp(-e.deltaY * 0.003);
+        // Continuous precision trackpad: proportional easing
+        zoomFactor = Math.exp(-e.deltaY * 0.0035);
       }
 
-      const curr = transformRef.current;
-      const newScale = Math.min(Math.max(curr.scale * zoomFactor, 0.35), 3.0);
-      if (Math.abs(newScale - curr.scale) < 0.0001) return;
+      const target = targetTransformRef.current;
+      const newScale = Math.min(Math.max(target.scale * zoomFactor, 0.35), 3.0);
+      if (Math.abs(newScale - target.scale) < 0.0001) return;
 
-      const ratio = newScale / curr.scale;
+      const ratio = newScale / target.scale;
 
-      // Anchor zoom exactly to (mouseX, mouseY)
-      const newX = mouseX - (mouseX - curr.x) * ratio;
-      const newY = mouseY - (mouseY - curr.y) * ratio;
+      // Anchor zoom target precisely to mouse cursor position
+      target.x = mouseX - (mouseX - target.x) * ratio;
+      target.y = mouseY - (mouseY - target.y) * ratio;
+      target.scale = newScale;
 
-      const next = {
-        x: newX,
-        y: newY,
-        scale: newScale,
-      };
-
-      transformRef.current = next;
-      setTransform(next);
+      triggerAnimation();
     };
 
     container.addEventListener("wheel", handleWheel, { passive: false });
     return () => {
       container.removeEventListener("wheel", handleWheel);
     };
-  }, []);
+  }, [triggerAnimation]);
 
   // Mouse drag panning on canvas background
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -398,8 +426,8 @@ export const PaulePerronPreset: React.FC<Props> = ({
     panStartRef.current = {
       startX: e.clientX,
       startY: e.clientY,
-      initX: transformRef.current.x,
-      initY: transformRef.current.y,
+      initX: currentTransformRef.current.x,
+      initY: currentTransformRef.current.y,
     };
   };
 
@@ -407,13 +435,18 @@ export const PaulePerronPreset: React.FC<Props> = ({
     if (!isPanning) return;
     const dx = e.clientX - panStartRef.current.startX;
     const dy = e.clientY - panStartRef.current.startY;
-    const next = {
-      ...transformRef.current,
-      x: panStartRef.current.initX + dx,
-      y: panStartRef.current.initY + dy,
-    };
-    transformRef.current = next;
-    setTransform(next);
+
+    const nextX = panStartRef.current.initX + dx;
+    const nextY = panStartRef.current.initY + dy;
+
+    targetTransformRef.current.x = nextX;
+    targetTransformRef.current.y = nextY;
+    currentTransformRef.current.x = nextX;
+    currentTransformRef.current.y = nextY;
+
+    if (canvasRef.current) {
+      canvasRef.current.style.transform = `translate3d(${nextX}px, ${nextY}px, 0) scale(${currentTransformRef.current.scale})`;
+    }
   };
 
   const handleMouseUp = () => {
@@ -571,9 +604,10 @@ export const PaulePerronPreset: React.FC<Props> = ({
       {/* DESKTOP INFINITE MIRO CANVAS (>= lg): Pan, Zoom, Drag & Orbit             */}
       {/* ========================================================================= */}
       <div
+        ref={canvasRef}
         className="hidden lg:block w-full h-full absolute inset-0 will-change-transform"
         style={{
-          transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
+          transform: `translate3d(0px, 0px, 0) scale(1)`,
           transformOrigin: "0 0",
         }}
       >
@@ -743,7 +777,7 @@ export const PaulePerronPreset: React.FC<Props> = ({
         <button
           onClick={handleZoomOut}
           className="p-1 hover:text-foreground transition-colors rounded hover:bg-muted/40"
-          title="Zoom Out (Scroll Down)"
+          title="Zoom Out"
           aria-label="Zoom Out"
         >
           <ZoomOut className="w-3.5 h-3.5" />
@@ -754,13 +788,13 @@ export const PaulePerronPreset: React.FC<Props> = ({
           className="px-1.5 py-0.5 text-[10px] tracking-wider font-medium hover:text-foreground transition-colors rounded hover:bg-muted/40"
           title="Reset View (100%)"
         >
-          {Math.round(transform.scale * 100)}%
+          {displayZoom}%
         </button>
 
         <button
           onClick={handleZoomIn}
           className="p-1 hover:text-foreground transition-colors rounded hover:bg-muted/40"
-          title="Zoom In (Scroll Up)"
+          title="Zoom In"
           aria-label="Zoom In"
         >
           <ZoomIn className="w-3.5 h-3.5" />
