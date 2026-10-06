@@ -222,6 +222,20 @@ const FLOATING_LAYOUT: Record<
     floatX: [0, -5, 6, -4, 0],
     floatRotate: [0.5, -0.4, 0.5, -0.3, 0.5],
   },
+  mavisehir: {
+    desktop: { bottom: "45%", right: "1%" },
+    duration: 8.0,
+    floatY: [0, -9, 7, -6, 0],
+    floatX: [0, 6, -5, 4, 0],
+    floatRotate: [-0.4, 0.5, -0.4, 0.5, -0.4],
+  },
+  urla: {
+    desktop: { top: "12%", left: "37%" },
+    duration: 8.5,
+    floatY: [0, 8, -8, 6, 0],
+    floatX: [0, -5, 7, -4, 0],
+    floatRotate: [0.4, -0.6, 0.5, -0.4, 0.4],
+  },
 };
 
 export const PaulePerronPreset: React.FC<Props> = ({
