@@ -300,27 +300,23 @@ export const PaulePerronPreset: React.FC<Props> = ({
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
 
-      if (e.ctrlKey || e.metaKey || Math.abs(e.deltaY) < 50) {
-        // Pinch-to-zoom / Ctrl+wheel zoom centered around cursor
-        const zoomFactor = e.deltaY < 0 ? 1.08 : 0.92;
-        setZoom((currZoom) => {
-          const nextZoom = Math.min(Math.max(currZoom * zoomFactor, 0.4), 2.5);
-          const zoomRatio = nextZoom / currZoom;
+      // Dedicated mouse wheel zoom in / out centered at cursor pointer
+      const zoomIntensity = 0.0018;
+      const zoomDelta = Math.exp(-e.deltaY * zoomIntensity);
 
-          setPan((currPan) => ({
-            x: mouseX - (mouseX - currPan.x) * zoomRatio,
-            y: mouseY - (mouseY - currPan.y) * zoomRatio,
-          }));
+      setZoom((currZoom) => {
+        const nextZoom = Math.min(Math.max(currZoom * zoomDelta, 0.35), 3.0);
+        if (Math.abs(nextZoom - currZoom) < 0.0001) return currZoom;
 
-          return nextZoom;
-        });
-      } else {
-        // Standard 2D trackpad / mouse pan
+        const zoomRatio = nextZoom / currZoom;
+
         setPan((currPan) => ({
-          x: currPan.x - e.deltaX * 0.9,
-          y: currPan.y - e.deltaY * 0.9,
+          x: mouseX - (mouseX - currPan.x) * zoomRatio,
+          y: mouseY - (mouseY - currPan.y) * zoomRatio,
         }));
-      }
+
+        return nextZoom;
+      });
     };
 
     container.addEventListener("wheel", handleWheel, { passive: false });
