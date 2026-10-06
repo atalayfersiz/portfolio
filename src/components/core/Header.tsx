@@ -72,8 +72,20 @@ export const Header: React.FC<Props> = ({
 
         {/* Center / Right Nav Links */}
         <nav className="flex items-center gap-6 sm:gap-8 text-xs font-mono uppercase tracking-widest">
-          {/* Works + Dark/Light Mode Toggle */}
+          {/* Dark/Light Mode Toggle + Works */}
           <div className="flex items-center gap-1.5">
+            <button
+              onClick={handleToggleDarkMode}
+              aria-label="Toggle dark/light mode"
+              className="p-1 rounded-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer inline-flex items-center justify-center mr-0.5"
+              title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {isDark ? (
+                <Sun className="w-3.5 h-3.5 stroke-[1.75]" />
+              ) : (
+                <Moon className="w-3.5 h-3.5 stroke-[1.75]" />
+              )}
+            </button>
             <Link
               href="/"
               className={`transition-colors hover:text-foreground ${
@@ -84,18 +96,6 @@ export const Header: React.FC<Props> = ({
             >
               works
             </Link>
-            <button
-              onClick={handleToggleDarkMode}
-              aria-label="Toggle dark/light mode"
-              className="p-1 rounded-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer inline-flex items-center justify-center ml-0.5"
-              title={isDark ? "Switch to light mode" : "Switch to dark mode"}
-            >
-              {isDark ? (
-                <Sun className="w-3.5 h-3.5 stroke-[1.75]" />
-              ) : (
-                <Moon className="w-3.5 h-3.5 stroke-[1.75]" />
-              )}
-            </button>
           </div>
 
           <Link
