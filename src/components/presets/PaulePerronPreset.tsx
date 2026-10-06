@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Project, Category } from "@/types/portfolio";
 import { motion, AnimatePresence } from "framer-motion";
 import { getAssetPath } from "@/utils/asset";
-import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 
 interface Props {
   projects: Project[];
@@ -258,7 +257,6 @@ export const PaulePerronPreset: React.FC<Props> = ({
   const router = useRouter();
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
   const [hoveredProjectId, setHoveredProjectId] = useState<string | null>(null);
-  const [displayZoom, setDisplayZoom] = useState<number>(100);
   const [isPanning, setIsPanning] = useState<boolean>(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -291,7 +289,7 @@ export const PaulePerronPreset: React.FC<Props> = ({
     const target = targetTransformRef.current;
     const current = currentTransformRef.current;
 
-    // Smooth easing interpolation factor (0.18 = responsive & fluid)
+    // Smooth easing interpolation factor
     const lerpFactor = 0.18;
 
     const dx = target.x - current.x;
@@ -314,8 +312,6 @@ export const PaulePerronPreset: React.FC<Props> = ({
       canvasRef.current.style.transform = `translate3d(${current.x}px, ${current.y}px, 0) scale(${current.scale})`;
     }
 
-    setDisplayZoom(Math.round(current.scale * 100));
-
     if (!isSettled) {
       animFrameRef.current = requestAnimationFrame(updateTransform);
     } else {
@@ -329,48 +325,7 @@ export const PaulePerronPreset: React.FC<Props> = ({
     }
   }, [updateTransform]);
 
-  // Reset Viewport to Default
-  const resetView = useCallback(() => {
-    targetTransformRef.current = { x: 0, y: 0, scale: 1.0 };
-    triggerAnimation();
-  }, [triggerAnimation]);
-
-  // Viewport-centered HUD zoom buttons
-  const handleZoomIn = () => {
-    const container = containerRef.current;
-    if (!container) return;
-    const rect = container.getBoundingClientRect();
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    const target = targetTransformRef.current;
-    const newScale = Math.min(Number((target.scale * 1.25).toFixed(3)), 3.0);
-    const ratio = newScale / target.scale;
-
-    target.x = centerX - (centerX - target.x) * ratio;
-    target.y = centerY - (centerY - target.y) * ratio;
-    target.scale = newScale;
-
-    triggerAnimation();
-  };
-
-  const handleZoomOut = () => {
-    const container = containerRef.current;
-    if (!container) return;
-    const rect = container.getBoundingClientRect();
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    const target = targetTransformRef.current;
-    const newScale = Math.max(Number((target.scale / 1.25).toFixed(3)), 0.35);
-    const ratio = newScale / target.scale;
-
-    target.x = centerX - (centerX - target.x) * ratio;
-    target.y = centerY - (centerY - target.y) * ratio;
-    target.scale = newScale;
-
-    triggerAnimation();
-  };
-
-  // Precise Cursor-Anchored Smooth Wheel Zoom Handler
+  // Precise Cursor-Anchored Smooth Wheel Zoom Handler (Locked max zoom to 1.0 / 100%)
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -392,8 +347,14 @@ export const PaulePerronPreset: React.FC<Props> = ({
       }
 
       const target = targetTransformRef.current;
-      const newScale = Math.min(Math.max(target.scale * zoomFactor, 0.35), 3.0);
-      if (Math.abs(newScale - target.scale) < 0.0001) return;
+      // Cap scale strictly between 0.35 (35% zoom out) and 1.0 (100% max zoom)
+      const newScale = Math.min(Math.max(target.scale * zoomFactor, 0.35), 1.0);
+
+      // If already at 100% and trying to zoom in further, stop
+      if (Math.abs(newScale - target.scale) < 0.0001) {
+        if (target.scale > 1.0) target.scale = 1.0;
+        return;
+      }
 
       const ratio = newScale / target.scale;
 
@@ -416,8 +377,7 @@ export const PaulePerronPreset: React.FC<Props> = ({
     const target = e.target as HTMLElement;
     if (
       target.closest(".project-floating-card") ||
-      target.closest(".paule-cat-btn") ||
-      target.closest(".miro-hud")
+      target.closest(".paule-cat-btn")
     ) {
       return;
     }
@@ -459,8 +419,7 @@ export const PaulePerronPreset: React.FC<Props> = ({
       const target = e.target as HTMLElement;
       if (
         target.closest(".project-floating-card") ||
-        target.closest(".paule-cat-btn") ||
-        target.closest(".miro-hud")
+        target.closest(".paule-cat-btn")
       ) {
         return;
       }
@@ -768,48 +727,6 @@ export const PaulePerronPreset: React.FC<Props> = ({
             );
           })}
         </div>
-      </div>
-
-      {/* ========================================================================= */}
-      {/* MIRO-STYLE FLOATING HUD TOOLBAR (Bottom-Right on Desktop)                  */}
-      {/* ========================================================================= */}
-      <div className="miro-hud hidden lg:flex items-center gap-1.5 absolute bottom-5 right-5 z-40 bg-background/80 backdrop-blur-md border border-border/50 dynamic-radius px-2 py-1 shadow-sm font-mono text-[11px] text-muted-foreground select-none pointer-events-auto">
-        <button
-          onClick={handleZoomOut}
-          className="p-1 hover:text-foreground transition-colors rounded hover:bg-muted/40"
-          title="Zoom Out"
-          aria-label="Zoom Out"
-        >
-          <ZoomOut className="w-3.5 h-3.5" />
-        </button>
-
-        <button
-          onClick={resetView}
-          className="px-1.5 py-0.5 text-[10px] tracking-wider font-medium hover:text-foreground transition-colors rounded hover:bg-muted/40"
-          title="Reset View (100%)"
-        >
-          {displayZoom}%
-        </button>
-
-        <button
-          onClick={handleZoomIn}
-          className="p-1 hover:text-foreground transition-colors rounded hover:bg-muted/40"
-          title="Zoom In"
-          aria-label="Zoom In"
-        >
-          <ZoomIn className="w-3.5 h-3.5" />
-        </button>
-
-        <div className="h-3 w-[1px] bg-border/60 mx-0.5" />
-
-        <button
-          onClick={resetView}
-          className="p-1 hover:text-foreground transition-colors rounded hover:bg-muted/40"
-          title="Reset Pan & Zoom"
-          aria-label="Reset View"
-        >
-          <RotateCcw className="w-3 h-3" />
-        </button>
       </div>
     </div>
   );
