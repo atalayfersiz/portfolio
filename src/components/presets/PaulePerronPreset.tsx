@@ -480,34 +480,33 @@ export const PaulePerronPreset: React.FC<Props> = ({
                 key={cat.id}
                 onClick={(e) => handleCategoryClick(e, cat.id)}
                 className={`paule-cat-btn group relative cursor-pointer text-xs sm:text-sm font-heading tracking-[0.35em] uppercase py-1.5 px-4 transition-all duration-300 ${
-                  cat.isBold ? "font-bold" : "font-light"
-                } ${
                   isSelected
-                    ? "text-foreground font-semibold"
+                    ? "text-foreground font-bold"
                     : activeCategory
-                    ? "text-muted-foreground/35 hover:text-muted-foreground"
-                    : "text-foreground/80 hover:text-foreground"
+                    ? "text-muted-foreground/35 hover:text-muted-foreground font-light"
+                    : cat.isBold
+                    ? "font-bold text-foreground/85 hover:text-foreground"
+                    : "font-light text-foreground/80 hover:text-foreground"
                 }`}
               >
-                <span className={`inline-block transition-all duration-300 ${cat.isBold ? "font-bold" : ""}`}>
+                <span
+                  className={`inline-block transition-all duration-300 group-hover:underline underline-offset-8 decoration-[1.5px] ${
+                    isSelected
+                      ? "underline font-bold text-foreground"
+                      : ""
+                  }`}
+                >
                   {cat.label}
                 </span>
                 <span
-                  className={`ml-2.5 text-[9px] font-mono tracking-widest px-1.5 py-0.2 border dynamic-radius align-middle transition-all duration-300 ${
+                  className={`ml-2.5 text-[9px] font-mono tracking-widest px-1.5 py-0.2 border dynamic-radius align-middle transition-all duration-300 no-underline ${
                     isSelected
-                      ? "border-foreground text-foreground bg-foreground/5 font-semibold"
+                      ? "border-foreground text-foreground bg-foreground/5 font-bold"
                       : "border-border/60 text-muted-foreground/60 opacity-60"
                   }`}
                 >
                   {count}
                 </span>
-                {isSelected && (
-                  <motion.div
-                    layoutId="active-cat-indicator-mobile"
-                    className="absolute -bottom-0.5 left-1/4 right-1/4 h-[1px] bg-foreground/70"
-                    transition={{ type: "spring", stiffness: 350, damping: 30 }}
-                  />
-                )}
               </button>
             );
           })}
@@ -595,34 +594,33 @@ export const PaulePerronPreset: React.FC<Props> = ({
                   key={cat.id}
                   onClick={(e) => handleCategoryClick(e, cat.id)}
                   className={`paule-cat-btn group relative cursor-pointer text-xs sm:text-sm md:text-[15px] font-heading tracking-[0.35em] uppercase py-2 px-5 transition-all duration-300 ${
-                    cat.isBold ? "font-bold" : "font-light"
-                  } ${
                     isSelected
-                      ? "text-foreground font-semibold"
+                      ? "text-foreground font-bold"
                       : activeCategory
-                      ? "text-muted-foreground/35 hover:text-muted-foreground"
-                      : "text-foreground/75 hover:text-foreground"
+                      ? "text-muted-foreground/35 hover:text-muted-foreground font-light"
+                      : cat.isBold
+                      ? "font-bold text-foreground/85 hover:text-foreground"
+                      : "font-light text-foreground/75 hover:text-foreground"
                   }`}
                 >
-                  <span className={`inline-block transition-all duration-300 ${cat.isBold ? "font-bold" : ""}`}>
+                  <span
+                    className={`inline-block transition-all duration-300 group-hover:underline underline-offset-8 decoration-[1.5px] ${
+                      isSelected
+                        ? "underline font-bold text-foreground"
+                        : ""
+                    }`}
+                  >
                     {cat.label}
                   </span>
                   <span
-                    className={`ml-2.5 text-[9px] font-mono tracking-widest px-1.5 py-0.2 border dynamic-radius align-middle transition-all duration-300 ${
+                    className={`ml-2.5 text-[9px] font-mono tracking-widest px-1.5 py-0.2 border dynamic-radius align-middle transition-all duration-300 no-underline ${
                       isSelected
-                        ? "border-foreground text-foreground bg-foreground/5 font-semibold"
+                        ? "border-foreground text-foreground bg-foreground/5 font-bold"
                         : "border-border/60 text-muted-foreground/60 opacity-60 group-hover:opacity-100"
                     }`}
                   >
                     {count}
                   </span>
-                  {isSelected && (
-                    <motion.div
-                      layoutId="active-cat-indicator-desktop"
-                      className="absolute -bottom-0.5 left-1/4 right-1/4 h-[1px] bg-foreground/60"
-                      transition={{ type: "spring", stiffness: 350, damping: 30 }}
-                    />
-                  )}
                 </button>
               );
             })}
