@@ -4,7 +4,7 @@ const basePath = isGithubPages ? "/portfolio" : (process.env.NEXT_PUBLIC_BASE_PA
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: "export",
+  output: isProd ? "export" : undefined,
   trailingSlash: true,
   basePath: basePath,
   assetPrefix: basePath ? `${basePath}/` : undefined,
