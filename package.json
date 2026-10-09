@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "clean": "node scripts/clean.js",
+    "dev": "node scripts/clean.js && next dev -p 3000",
+    "build": "node scripts/clean.js && next build",
     "start": "next start",
     "lint": "next lint",
     "backup": "node scripts/backup.js",
