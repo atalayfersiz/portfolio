@@ -612,7 +612,7 @@ export default function ProjectDetailClient({ project, otherProjects }: Props) {
             >
               <div className="flex items-center justify-between border-b border-border/50 pb-2.5">
                 <span className="text-xs font-mono uppercase tracking-widest text-foreground font-medium">
-                  Other Projects
+                  Other Works
                 </span>
                 <Link
                   href="/"
