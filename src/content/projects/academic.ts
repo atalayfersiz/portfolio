@@ -352,7 +352,7 @@ export const academicProjects: Project[] = [
     category: "academic",
     categories: ["academic"],
     gridPos: { x: 9, y: 1 },
-    subtitle: "Competition • Miniature Design Competition — Honorable Mention",
+    subtitle: "Competition • Miniature Design Competition — Honorable Mention (with Ezgi Özdil)",
     year: "2023",
     location: "Istanbul",
     coverImage: {
@@ -371,13 +371,14 @@ export const academicProjects: Project[] = [
       },
     ],
     description:
-      "Honorable Mention-winning micro-scale spatial intervention exploring compact modular living units, kinetic space-saving furniture, and responsive folding surfaces.",
+      "Honorable Mention-winning micro-scale spatial intervention designed in collaboration with Ezgi Özdil, exploring compact modular living units, kinetic space-saving furniture, and responsive folding surfaces.",
     technicalSpecs: [
       { label: "Award", value: "Honorable Mention" },
       { label: "Competition", value: "MDC Miniature Design" },
+      { label: "Collaboration", value: "Ezgi Özdil & Atalay Fersiz" },
       { label: "Year", value: "2023" },
     ],
-    tags: ["Competition", "Honorable Mention", "Miniature Design", "Micro Scale"],
+    tags: ["Competition", "Honorable Mention", "Miniature Design", "Micro Scale", "Ezgi Özdil"],
   },
   {
     id: "cb",
