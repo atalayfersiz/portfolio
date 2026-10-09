@@ -18,7 +18,6 @@ import {
   Maximize2,
   ZoomIn,
   ZoomOut,
-  Play,
   Film,
 } from "lucide-react";
 import { getAssetPath } from "@/utils/asset";
@@ -64,8 +63,8 @@ export default function ProjectDetailClient({ project, otherProjects }: Props) {
   const [slideDirection, setSlideDirection] = useState<1 | -1>(1);
   const [isPanning, setIsPanning] = useState(false);
 
-  // Dragging detection to prevent opening lightbox when dragging cards
-  const isDraggingCardRef = useRef<boolean>(false);
+  // Distinguishes drag/pan gesture from a pure click
+  const hasDraggedRef = useRef<boolean>(false);
 
   // Canvas Viewport and Physics Engine
   const containerRef = useRef<HTMLDivElement>(null);
@@ -204,19 +203,24 @@ export default function ProjectDetailClient({ project, otherProjects }: Props) {
     };
   }, [triggerAnimation]);
 
-  // Mouse drag panning on canvas background
+  // Mouse drag panning across the entire board (including hovering over images/cards)
   const handleMouseDown = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
+
+    // Only exclude pan when clicking interactive buttons, interactive links, or iframe embeds
     if (
-      target.closest(".board-card") ||
       target.closest(".board-hud") ||
       target.closest("button") ||
-      target.closest("a")
+      target.closest("a") ||
+      target.closest("iframe") ||
+      target.tagName.toLowerCase() === "button" ||
+      target.tagName.toLowerCase() === "a"
     ) {
       return;
     }
 
     setIsPanning(true);
+    hasDraggedRef.current = false;
     panStartRef.current = {
       startX: e.clientX,
       startY: e.clientY,
@@ -229,6 +233,10 @@ export default function ProjectDetailClient({ project, otherProjects }: Props) {
     if (!isPanning) return;
     const dx = e.clientX - panStartRef.current.startX;
     const dy = e.clientY - panStartRef.current.startY;
+
+    if (Math.hypot(dx, dy) > 4) {
+      hasDraggedRef.current = true;
+    }
 
     const nextX = panStartRef.current.initX + dx;
     const nextY = panStartRef.current.initY + dy;
@@ -302,7 +310,7 @@ export default function ProjectDetailClient({ project, otherProjects }: Props) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [lightboxIndex, project.gallery]);
 
-  // Spatial placement calculation for gallery items
+  // Spatial grid calculation with perfect geometric alignment
   const galleryItems = project.gallery || [];
   const galleryCount = galleryItems.length;
 
@@ -317,15 +325,17 @@ export default function ProjectDetailClient({ project, otherProjects }: Props) {
   }
 
   const cardWidth = 460;
-  const gapX = 36;
-  const gapY = 36;
+  const cardHeight = 360;
+  const gapX = 32;
+  const gapY = 32;
   const startX = 640; // Starts to the right of the main text block
+  const startY = 50;  // Perfectly aligned top coordinate across all columns
 
   return (
     <div className="h-screen w-screen overflow-hidden flex flex-col bg-background text-foreground transition-colors duration-300 select-none">
       {/* Top Header */}
       <Header
-        onOpenConfig={() => setIsConfigOpen(true)}
+        onOpenConfig={() => setIsConfigOpen(false)}
         darkMode={darkMode}
         onToggleDarkMode={toggleDarkMode}
       />
@@ -337,7 +347,7 @@ export default function ProjectDetailClient({ project, otherProjects }: Props) {
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
-        className={`flex-1 relative w-full h-[calc(100vh-4rem)] overflow-hidden bg-background text-foreground touch-none ${
+        className={`flex-1 relative w-full h-[calc(100vh-4rem)] overflow-hidden bg-background text-foreground touch-none select-none ${
           isPanning ? "cursor-grabbing" : "cursor-grab"
         }`}
       >
@@ -364,33 +374,22 @@ export default function ProjectDetailClient({ project, otherProjects }: Props) {
           />
 
           {/* ========================================================================= */}
-          {/* 1. PROJECT NARRATIVE & SPECS CARD (MAIN TEXT BLOCK RECTANGLE)             */}
+          {/* 1. PROJECT NARRATIVE & SPECS CARD (ALIGNED TEXT BLOCK RECTANGLE)          */}
           {/* ========================================================================= */}
           <motion.div
-            drag
-            dragMomentum={false}
-            dragElastic={0.05}
-            onDragStart={() => {
-              isDraggingCardRef.current = true;
-            }}
-            onDragEnd={() => {
-              setTimeout(() => {
-                isDraggingCardRef.current = false;
-              }, 120);
-            }}
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
+            transition={{ duration: 0.35 }}
             style={{
               position: "absolute",
-              top: 50,
+              top: startY,
               left: 50,
               width: 540,
             }}
-            className="board-card pointer-events-auto cursor-grab active:cursor-grabbing bg-card/92 backdrop-blur-md border border-border/80 dynamic-radius shadow-xl hover:shadow-2xl transition-shadow p-7 sm:p-8 flex flex-col gap-6 z-20 select-text"
+            className="board-card pointer-events-auto bg-card/92 backdrop-blur-md border border-border/80 dynamic-radius shadow-xl p-7 sm:p-8 flex flex-col gap-6 z-20 select-text"
           >
             {/* Top Navigation & Meta Header */}
-            <div className="flex items-center justify-between border-b border-border/60 pb-3.5 text-xs font-mono">
+            <div className="flex items-center justify-between border-b border-border/60 pb-3.5 text-xs font-mono select-none">
               <Link
                 href="/"
                 className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest pointer-events-auto"
@@ -471,31 +470,20 @@ export default function ProjectDetailClient({ project, otherProjects }: Props) {
           </motion.div>
 
           {/* ========================================================================= */}
-          {/* 2. INSTAGRAM REEL EMBED CARD (IF AVAILABLE)                               */}
+          {/* 2. INSTAGRAM REEL EMBED CARD (ALIGNED IF AVAILABLE)                       */}
           {/* ========================================================================= */}
           {project.instagramEmbedUrl && (
             <motion.div
-              drag
-              dragMomentum={false}
-              dragElastic={0.05}
-              onDragStart={() => {
-                isDraggingCardRef.current = true;
-              }}
-              onDragEnd={() => {
-                setTimeout(() => {
-                  isDraggingCardRef.current = false;
-                }, 120);
-              }}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4, delay: 0.1 }}
+              transition={{ duration: 0.35, delay: 0.05 }}
               style={{
                 position: "absolute",
-                top: 50,
+                top: startY,
                 left: startX,
                 width: 380,
               }}
-              className="board-card pointer-events-auto cursor-grab active:cursor-grabbing bg-card/90 backdrop-blur-md border border-border/80 dynamic-radius shadow-xl p-4 flex flex-col gap-3 z-20"
+              className="board-card pointer-events-auto bg-card/90 backdrop-blur-md border border-border/80 dynamic-radius shadow-xl p-4 flex flex-col gap-3 z-20"
             >
               <div className="flex items-center justify-between text-xs font-mono text-muted-foreground uppercase pb-1 border-b border-border/40">
                 <span className="flex items-center gap-1.5 text-foreground font-medium">
@@ -529,7 +517,7 @@ export default function ProjectDetailClient({ project, otherProjects }: Props) {
           )}
 
           {/* ========================================================================= */}
-          {/* 3. GALLERY MEDIA RECTANGLES (DRAGGABLE MOODBOARD TILES)                   */}
+          {/* 3. GALLERY MEDIA RECTANGLES (PERFECTLY ALIGNED RECTANGULAR GRID)         */}
           {/* ========================================================================= */}
           {galleryItems.map((item, idx) => {
             const isVideo = item.url.toLowerCase().endsWith(".mp4");
@@ -539,45 +527,33 @@ export default function ProjectDetailClient({ project, otherProjects }: Props) {
             // Shift gallery right if Instagram embed exists in first position
             const offsetStartX = project.instagramEmbedUrl ? startX + 420 : startX;
             const cardX = offsetStartX + col * (cardWidth + gapX);
-            // Slight organic stagger per column for an artistic Miro pinboard aesthetic
-            const staggerY = (col % 2 === 1 ? 28 : 0);
-            const cardY = 50 + row * (380 + gapY) + staggerY;
+            const cardY = startY + row * (cardHeight + gapY);
 
             return (
               <motion.div
                 key={idx}
-                drag
-                dragMomentum={false}
-                dragElastic={0.05}
-                onDragStart={() => {
-                  isDraggingCardRef.current = true;
-                }}
-                onDragEnd={() => {
-                  setTimeout(() => {
-                    isDraggingCardRef.current = false;
-                  }, 120);
-                }}
-                initial={{ opacity: 0, scale: 0.95 }}
+                initial={{ opacity: 0, scale: 0.96 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.35, delay: Math.min(idx * 0.03, 0.5) }}
+                transition={{ duration: 0.3, delay: Math.min(idx * 0.02, 0.4) }}
                 style={{
                   position: "absolute",
                   top: cardY,
                   left: cardX,
                   width: cardWidth,
+                  height: cardHeight,
                 }}
                 onClick={() => {
-                  if (!isDraggingCardRef.current && !isVideo) {
+                  if (!hasDraggedRef.current && !isVideo) {
                     setSlideDirection(1);
                     setLightboxIndex(idx);
                   }
                 }}
-                className={`board-card pointer-events-auto cursor-grab active:cursor-grabbing bg-card/90 backdrop-blur-md border border-border/80 hover:border-foreground/50 dynamic-radius shadow-lg hover:shadow-2xl transition-all duration-300 p-3 flex flex-col gap-2.5 z-10 hover:z-30 group ${
-                  !isVideo ? "hover:scale-[1.01]" : ""
+                className={`board-card pointer-events-auto bg-card/90 backdrop-blur-md border border-border/80 hover:border-foreground/60 dynamic-radius shadow-lg hover:shadow-2xl transition-all duration-200 p-3 flex flex-col justify-between gap-2.5 z-10 hover:z-30 group select-none ${
+                  !isVideo ? "hover:scale-[1.01] cursor-pointer" : ""
                 }`}
               >
                 {/* Media Container */}
-                <div className="relative w-full aspect-[4/3] bg-muted/30 overflow-hidden dynamic-radius border border-border/50 flex items-center justify-center">
+                <div className="relative w-full flex-1 bg-muted/30 overflow-hidden dynamic-radius border border-border/50 flex items-center justify-center pointer-events-none select-none">
                   {isVideo ? (
                     <video
                       src={getAssetPath(item.url)}
@@ -586,19 +562,19 @@ export default function ProjectDetailClient({ project, otherProjects }: Props) {
                       muted
                       playsInline
                       controls
-                      className="w-full h-full object-contain"
+                      className="w-full h-full object-contain pointer-events-auto"
                     />
                   ) : (
                     <>
                       <img
                         src={getAssetPath(item.url)}
                         alt={item.alt || `${project.title} Drawing ${idx + 1}`}
-                        loading={idx < 4 ? "eager" : "lazy"}
+                        loading={idx < 6 ? "eager" : "lazy"}
                         draggable={false}
                         className="w-full h-full object-contain pointer-events-none select-none transition-transform duration-500 group-hover:scale-[1.02]"
                       />
                       {/* Zoom Indicator Icon on Hover */}
-                      <div className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-background/80 backdrop-blur-xs border border-border/60 text-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-background/85 backdrop-blur-xs border border-border/60 text-foreground opacity-0 group-hover:opacity-100 transition-opacity">
                         <Maximize2 className="w-3.5 h-3.5 stroke-[1.5]" />
                       </div>
                     </>
@@ -606,7 +582,7 @@ export default function ProjectDetailClient({ project, otherProjects }: Props) {
                 </div>
 
                 {/* Card Meta Caption / Drawing Label */}
-                <div className="flex items-center justify-between px-1 text-[11px] font-mono text-muted-foreground">
+                <div className="flex items-center justify-between px-1 pt-1 text-[11px] font-mono text-muted-foreground select-none pointer-events-none">
                   <span className="truncate max-w-[340px] uppercase">
                     {item.alt || item.caption || `Drawing ${idx + 1}`}
                   </span>
@@ -619,31 +595,20 @@ export default function ProjectDetailClient({ project, otherProjects }: Props) {
           })}
 
           {/* ========================================================================= */}
-          {/* 4. OTHER PROJECTS QUICK SWITCHER CARD                                     */}
+          {/* 4. OTHER PROJECTS QUICK SWITCHER CARD (ALIGNED BELOW NARRATIVE)          */}
           {/* ========================================================================= */}
           {otherProjects && otherProjects.length > 0 && (
             <motion.div
-              drag
-              dragMomentum={false}
-              dragElastic={0.05}
-              onDragStart={() => {
-                isDraggingCardRef.current = true;
-              }}
-              onDragEnd={() => {
-                setTimeout(() => {
-                  isDraggingCardRef.current = false;
-                }, 120);
-              }}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.2 }}
+              transition={{ duration: 0.35, delay: 0.15 }}
               style={{
                 position: "absolute",
-                top: 50 + (project.technicalSpecs ? 680 : 540),
+                top: startY + (project.technicalSpecs && project.technicalSpecs.length > 3 ? 680 : 540),
                 left: 50,
                 width: 540,
               }}
-              className="board-card pointer-events-auto cursor-grab active:cursor-grabbing bg-card/90 backdrop-blur-md border border-border/80 dynamic-radius shadow-xl p-6 flex flex-col gap-4 z-20"
+              className="board-card pointer-events-auto bg-card/90 backdrop-blur-md border border-border/80 dynamic-radius shadow-xl p-6 flex flex-col gap-4 z-20"
             >
               <div className="flex items-center justify-between border-b border-border/50 pb-2.5">
                 <span className="text-xs font-mono uppercase tracking-widest text-foreground font-medium">
@@ -665,14 +630,15 @@ export default function ProjectDetailClient({ project, otherProjects }: Props) {
                     href={`/projects/${other.slug}`}
                     className="group flex flex-col gap-2 p-2 bg-muted/20 border border-border/60 hover:border-foreground/40 transition-colors dynamic-radius pointer-events-auto"
                   >
-                    <div className="relative aspect-square w-full overflow-hidden bg-muted dynamic-radius border border-border/50">
+                    <div className="relative aspect-square w-full overflow-hidden bg-muted dynamic-radius border border-border/50 pointer-events-none select-none">
                       <img
                         src={getAssetPath(other.coverImage.url)}
                         alt={other.coverImage.alt}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        draggable={false}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 pointer-events-none select-none"
                       />
                     </div>
-                    <div className="px-0.5">
+                    <div className="px-0.5 pointer-events-none select-none">
                       <h4 className="text-[10px] font-medium tracking-tight uppercase truncate text-foreground group-hover:text-muted-foreground transition-colors">
                         {other.title}
                       </h4>
