@@ -925,7 +925,7 @@ export default function ProjectDetailClient({ project, otherProjects }: Props) {
                 ? isLightboxPanning
                   ? "cursor-grabbing"
                   : "cursor-grab"
-                : "cursor-zoom-out"
+                : "cursor-default"
             }`}
             onClick={handleBackdropClick}
             onMouseDown={handleLightboxMouseDown}
@@ -1041,7 +1041,7 @@ export default function ProjectDetailClient({ project, otherProjects }: Props) {
                     ? isLightboxPanning
                       ? "grabbing"
                       : "grab"
-                    : "zoom-in",
+                    : "default",
               }}
               onDoubleClick={handleImageDoubleClick}
             >
@@ -1114,13 +1114,6 @@ export default function ProjectDetailClient({ project, otherProjects }: Props) {
                 </motion.div>
               </AnimatePresence>
             </div>
-
-            {/* Subtle bottom helper hint when zoomed in */}
-            {lightboxZoom > 1 && (
-              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 bg-black/70 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/15 text-white/70 text-[11px] font-mono tracking-wider pointer-events-none uppercase">
-                Scroll to zoom • Drag to pan
-              </div>
-            )}
           </motion.div>
         )}
       </AnimatePresence>
