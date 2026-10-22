@@ -61,7 +61,34 @@ export default function ProjectDetailClient({ project, otherProjects }: Props) {
   const [activePreset, setActivePreset] = useState(siteConfig.activePreset);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [slideDirection, setSlideDirection] = useState<1 | -1>(1);
+  const [lightboxZoom, setLightboxZoom] = useState<number>(1);
+  const [lightboxPan, setLightboxPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isLightboxPanning, setIsLightboxPanning] = useState<boolean>(false);
   const [isPanning, setIsPanning] = useState(false);
+
+  const lightboxOverlayRef = useRef<HTMLDivElement>(null);
+  const lightboxZoomRef = useRef<number>(1);
+  const lightboxPanRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const lightboxPanStartRef = useRef<{
+    startX: number;
+    startY: number;
+    initX: number;
+    initY: number;
+  }>({
+    startX: 0,
+    startY: 0,
+    initX: 0,
+    initY: 0,
+  });
+  const hasLightboxPannedRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    lightboxZoomRef.current = lightboxZoom;
+  }, [lightboxZoom]);
+
+  useEffect(() => {
+    lightboxPanRef.current = lightboxPan;
+  }, [lightboxPan]);
 
   // Distinguishes drag/pan gesture from a pure click
   const hasDraggedRef = useRef<boolean>(false);
@@ -274,9 +301,19 @@ export default function ProjectDetailClient({ project, otherProjects }: Props) {
   };
 
   // Lightbox handlers
+  const closeLightbox = () => {
+    setLightboxIndex(null);
+    setLightboxZoom(1);
+    setLightboxPan({ x: 0, y: 0 });
+    setIsLightboxPanning(false);
+  };
+
   const handleNext = () => {
     if (project.gallery && project.gallery.length > 1) {
       setSlideDirection(1);
+      setLightboxZoom(1);
+      setLightboxPan({ x: 0, y: 0 });
+      setIsLightboxPanning(false);
       setLightboxIndex((prev) =>
         prev !== null ? (prev + 1) % project.gallery.length : 0
       );
@@ -286,6 +323,9 @@ export default function ProjectDetailClient({ project, otherProjects }: Props) {
   const handlePrev = () => {
     if (project.gallery && project.gallery.length > 1) {
       setSlideDirection(-1);
+      setLightboxZoom(1);
+      setLightboxPan({ x: 0, y: 0 });
+      setIsLightboxPanning(false);
       setLightboxIndex((prev) =>
         prev !== null
           ? (prev - 1 + project.gallery.length) % project.gallery.length
@@ -298,7 +338,12 @@ export default function ProjectDetailClient({ project, otherProjects }: Props) {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (lightboxIndex === null) return;
       if (e.key === "Escape") {
-        setLightboxIndex(null);
+        if (lightboxZoomRef.current > 1) {
+          setLightboxZoom(1);
+          setLightboxPan({ x: 0, y: 0 });
+        } else {
+          closeLightbox();
+        }
       } else if (e.key === "ArrowRight") {
         handleNext();
       } else if (e.key === "ArrowLeft") {
@@ -309,6 +354,161 @@ export default function ProjectDetailClient({ project, otherProjects }: Props) {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [lightboxIndex, project.gallery]);
+
+  // Precise Cursor-Anchored Wheel Zoom Handler for Lightbox Modal
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const overlay = lightboxOverlayRef.current;
+    if (!overlay) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const currentZoom = lightboxZoomRef.current;
+      const currentPan = lightboxPanRef.current;
+
+      let zoomFactor: number;
+      if (Math.abs(e.deltaY) >= 50) {
+        zoomFactor = e.deltaY < 0 ? 1.2 : 0.833;
+      } else {
+        zoomFactor = Math.exp(-e.deltaY * 0.0035);
+      }
+
+      let newZoom = Math.min(Math.max(currentZoom * zoomFactor, 1), 6);
+
+      // Snap back cleanly to 1x and reset pan when zooming out to baseline
+      if (newZoom <= 1.02) {
+        newZoom = 1;
+        setLightboxZoom(1);
+        setLightboxPan({ x: 0, y: 0 });
+        return;
+      }
+
+      // Cursor-anchored zoom position relative to screen center
+      const cx = window.innerWidth / 2;
+      const cy = window.innerHeight / 2;
+      const mx = e.clientX - cx;
+      const my = e.clientY - cy;
+
+      const ratio = newZoom / currentZoom;
+      let newPanX = mx - (mx - currentPan.x) * ratio;
+      let newPanY = my - (my - currentPan.y) * ratio;
+
+      // Generous bounding limits so the image doesn't fly off screen
+      const limitX = Math.max(0, (window.innerWidth * (newZoom - 1)) / 2 + 150);
+      const limitY = Math.max(0, (window.innerHeight * (newZoom - 1)) / 2 + 150);
+      newPanX = Math.max(-limitX, Math.min(limitX, newPanX));
+      newPanY = Math.max(-limitY, Math.min(limitY, newPanY));
+
+      setLightboxZoom(newZoom);
+      setLightboxPan({ x: newPanX, y: newPanY });
+    };
+
+    overlay.addEventListener("wheel", handleWheel, { passive: false });
+    return () => {
+      overlay.removeEventListener("wheel", handleWheel);
+    };
+  }, [lightboxIndex]);
+
+  // Left-Click Pan Handler for Lightbox (Active ONLY when zoomed in)
+  const handleLightboxMouseDown = (e: React.MouseEvent) => {
+    // Only react to primary left mouse button
+    if (e.button !== 0) return;
+
+    // Do not initiate pan if clicking buttons or links
+    const target = e.target as HTMLElement;
+    if (target.closest("button") || target.closest("a")) {
+      return;
+    }
+
+    // Only active when zoomed in!
+    if (lightboxZoomRef.current > 1) {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsLightboxPanning(true);
+      hasLightboxPannedRef.current = false;
+      lightboxPanStartRef.current = {
+        startX: e.clientX,
+        startY: e.clientY,
+        initX: lightboxPanRef.current.x,
+        initY: lightboxPanRef.current.y,
+      };
+    }
+  };
+
+  useEffect(() => {
+    if (!isLightboxPanning) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const dx = e.clientX - lightboxPanStartRef.current.startX;
+      const dy = e.clientY - lightboxPanStartRef.current.startY;
+
+      if (Math.hypot(dx, dy) > 4) {
+        hasLightboxPannedRef.current = true;
+      }
+
+      const zoom = lightboxZoomRef.current;
+      const limitX = Math.max(0, (window.innerWidth * (zoom - 1)) / 2 + 150);
+      const limitY = Math.max(0, (window.innerHeight * (zoom - 1)) / 2 + 150);
+
+      const nextX = Math.max(
+        -limitX,
+        Math.min(limitX, lightboxPanStartRef.current.initX + dx)
+      );
+      const nextY = Math.max(
+        -limitY,
+        Math.min(limitY, lightboxPanStartRef.current.initY + dy)
+      );
+
+      setLightboxPan({ x: nextX, y: nextY });
+    };
+
+    const handleMouseUp = () => {
+      setIsLightboxPanning(false);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isLightboxPanning]);
+
+  // Double click toggles between 1x and 2.5x zoom
+  const handleImageDoubleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (lightboxZoomRef.current > 1) {
+      setLightboxZoom(1);
+      setLightboxPan({ x: 0, y: 0 });
+    } else {
+      const cx = window.innerWidth / 2;
+      const cy = window.innerHeight / 2;
+      const mx = e.clientX - cx;
+      const my = e.clientY - cy;
+      const targetZoom = 2.5;
+      const panX = mx - mx * targetZoom;
+      const panY = my - my * targetZoom;
+      setLightboxZoom(targetZoom);
+      setLightboxPan({ x: panX, y: panY });
+    }
+  };
+
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (hasLightboxPannedRef.current) {
+      hasLightboxPannedRef.current = false;
+      return;
+    }
+    if (e.target === e.currentTarget) {
+      if (lightboxZoom > 1) {
+        setLightboxZoom(1);
+        setLightboxPan({ x: 0, y: 0 });
+      } else {
+        closeLightbox();
+      }
+    }
+  };
 
   // Spatial grid calculation with perfect geometric alignment
   const galleryItems = project.gallery || [];
@@ -545,6 +745,8 @@ export default function ProjectDetailClient({ project, otherProjects }: Props) {
                 onClick={() => {
                   if (!hasDraggedRef.current && !isVideo) {
                     setSlideDirection(1);
+                    setLightboxZoom(1);
+                    setLightboxPan({ x: 0, y: 0 });
                     setLightboxIndex(idx);
                   }
                 }}
@@ -711,26 +913,88 @@ export default function ProjectDetailClient({ project, otherProjects }: Props) {
       {/* FULLSCREEN HIGH-RESOLUTION LIGHTBOX MODAL                                 */}
       {/* ========================================================================= */}
       <AnimatePresence>
-        {lightboxIndex !== null &&
-          galleryItems[lightboxIndex] && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/94 backdrop-blur-md cursor-zoom-out select-none p-4 sm:p-6"
-              onClick={() => setLightboxIndex(null)}
+        {lightboxIndex !== null && galleryItems[lightboxIndex] && (
+          <motion.div
+            ref={lightboxOverlayRef}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className={`fixed inset-0 z-50 flex items-center justify-center bg-black/94 backdrop-blur-md select-none p-4 sm:p-6 overflow-hidden ${
+              lightboxZoom > 1
+                ? isLightboxPanning
+                  ? "cursor-grabbing"
+                  : "cursor-grab"
+                : "cursor-zoom-out"
+            }`}
+            onClick={handleBackdropClick}
+            onMouseDown={handleLightboxMouseDown}
+          >
+            {/* Top Bar Indicator & Controls */}
+            <div
+              className="absolute top-4 left-6 right-6 flex items-center justify-between z-50 text-white/80 text-xs font-mono uppercase tracking-widest pointer-events-auto"
+              onClick={(e) => e.stopPropagation()}
             >
-              {/* Top Bar Indicator & Close Button */}
-              <div
-                className="absolute top-4 left-6 right-6 flex items-center justify-between z-50 text-white/80 text-xs font-mono uppercase tracking-widest pointer-events-auto"
-                onClick={(e) => e.stopPropagation()}
-              >
+              <div className="flex items-center gap-3">
                 <span className="bg-black/60 px-2.5 py-1 rounded border border-white/15">
                   [{lightboxIndex + 1} / {galleryCount}]
                 </span>
+                {lightboxZoom > 1 && (
+                  <span className="bg-white/10 px-2.5 py-1 rounded border border-white/20 text-white font-medium">
+                    {Math.round(lightboxZoom * 100)}%
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                {lightboxZoom > 1 && (
+                  <button
+                    onClick={() => {
+                      setLightboxZoom(1);
+                      setLightboxPan({ x: 0, y: 0 });
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/25 text-white border border-white/20 transition-all cursor-pointer text-[11px]"
+                    title="Reset Zoom (1:1)"
+                  >
+                    <RotateCcw className="w-3 h-3 stroke-[2]" />
+                    <span>Reset</span>
+                  </button>
+                )}
+
+                <div className="hidden sm:flex items-center gap-1 bg-black/60 rounded-full border border-white/15 p-0.5 px-1.5">
+                  <button
+                    onClick={() => {
+                      const newZ = Math.max(1, lightboxZoom * 0.8);
+                      if (newZ <= 1.02) {
+                        setLightboxZoom(1);
+                        setLightboxPan({ x: 0, y: 0 });
+                      } else {
+                        setLightboxZoom(newZ);
+                        setLightboxPan((p) => ({ x: p.x * 0.8, y: p.y * 0.8 }));
+                      }
+                    }}
+                    disabled={lightboxZoom <= 1}
+                    className="p-1 text-white/70 hover:text-white disabled:opacity-30 disabled:hover:text-white/70 transition-colors cursor-pointer"
+                    title="Zoom Out (or scroll down)"
+                  >
+                    <ZoomOut className="w-3.5 h-3.5 stroke-[2]" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      const newZ = Math.min(6, lightboxZoom * 1.25);
+                      setLightboxZoom(newZ);
+                      setLightboxPan((p) => ({ x: p.x * 1.25, y: p.y * 1.25 }));
+                    }}
+                    disabled={lightboxZoom >= 6}
+                    className="p-1 text-white/70 hover:text-white disabled:opacity-30 disabled:hover:text-white/70 transition-colors cursor-pointer"
+                    title="Zoom In (or scroll up)"
+                  >
+                    <ZoomIn className="w-3.5 h-3.5 stroke-[2]" />
+                  </button>
+                </div>
+
                 <button
-                  onClick={() => setLightboxIndex(null)}
+                  onClick={closeLightbox}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/25 text-white border border-white/20 transition-all cursor-pointer shadow-lg"
                   title="Close (Esc or click background)"
                 >
@@ -738,81 +1002,127 @@ export default function ProjectDetailClient({ project, otherProjects }: Props) {
                   <X className="w-3.5 h-3.5 stroke-[2]" />
                 </button>
               </div>
+            </div>
 
-              {/* Left Navigation Arrow */}
-              {galleryCount > 1 && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handlePrev();
-                  }}
-                  className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-50 w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-full bg-black/60 hover:bg-white hover:text-black text-white border border-white/20 transition-all cursor-pointer shadow-xl active:scale-95"
-                  title="Previous drawing (Left Arrow)"
-                >
-                  <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
-                </button>
-              )}
+            {/* Left Navigation Arrow */}
+            {galleryCount > 1 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePrev();
+                }}
+                className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-50 w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-full bg-black/60 hover:bg-white hover:text-black text-white border border-white/20 transition-all cursor-pointer shadow-xl active:scale-95"
+                title="Previous drawing (Left Arrow)"
+              >
+                <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
+              </button>
+            )}
 
-              {/* Right Navigation Arrow */}
-              {galleryCount > 1 && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleNext();
-                  }}
-                  className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-50 w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-full bg-black/60 hover:bg-white hover:text-black text-white border border-white/20 transition-all cursor-pointer shadow-xl active:scale-95"
-                  title="Next drawing (Right Arrow)"
-                >
-                  <ChevronRight className="w-5 h-5 stroke-[2.5]" />
-                </button>
-              )}
+            {/* Right Navigation Arrow */}
+            {galleryCount > 1 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleNext();
+                }}
+                className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-50 w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-full bg-black/60 hover:bg-white hover:text-black text-white border border-white/20 transition-all cursor-pointer shadow-xl active:scale-95"
+                title="Next drawing (Right Arrow)"
+              >
+                <ChevronRight className="w-5 h-5 stroke-[2.5]" />
+              </button>
+            )}
 
-              {/* Sliding Image Container */}
-              <div className="relative max-w-[92vw] max-h-[86vh] flex items-center justify-center cursor-default">
-                <AnimatePresence
-                  initial={false}
+            {/* Sliding Image Container */}
+            <div
+              className="relative max-w-[92vw] max-h-[86vh] flex items-center justify-center"
+              style={{
+                cursor:
+                  lightboxZoom > 1
+                    ? isLightboxPanning
+                      ? "grabbing"
+                      : "grab"
+                    : "zoom-in",
+              }}
+              onDoubleClick={handleImageDoubleClick}
+            >
+              <AnimatePresence
+                initial={false}
+                custom={slideDirection}
+                mode="wait"
+              >
+                <motion.div
+                  key={lightboxIndex}
                   custom={slideDirection}
-                  mode="wait"
-                >
-                  <motion.div
-                    key={lightboxIndex}
-                    custom={slideDirection}
-                    variants={slideVariants}
-                    initial="enter"
-                    animate="center"
-                    exit="exit"
-                    drag={
-                      !galleryItems[lightboxIndex].url
-                        .toLowerCase()
-                        .endsWith(".mp4")
-                        ? "x"
-                        : false
+                  variants={slideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  drag={
+                    lightboxZoom === 1 &&
+                    !galleryItems[lightboxIndex].url
+                      .toLowerCase()
+                      .endsWith(".mp4")
+                      ? "x"
+                      : false
+                  }
+                  dragConstraints={{ left: 0, right: 0 }}
+                  dragElastic={0.4}
+                  onDragEnd={(e, { offset, velocity }) => {
+                    if (offset.x < -50 || velocity.x < -250) {
+                      handleNext();
+                    } else if (offset.x > 50 || velocity.x > 250) {
+                      handlePrev();
                     }
-                    dragConstraints={{ left: 0, right: 0 }}
-                    dragElastic={0.4}
-                    onDragEnd={(e, { offset, velocity }) => {
-                      if (offset.x < -50 || velocity.x < -250) {
-                        handleNext();
-                      } else if (offset.x > 50 || velocity.x > 250) {
-                        handlePrev();
-                      }
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="max-w-[92vw] max-h-[86vh] flex items-center justify-center touch-none select-none"
+                >
+                  <div
+                    style={{
+                      transform: `translate3d(${lightboxPan.x}px, ${lightboxPan.y}px, 0) scale(${lightboxZoom})`,
+                      transformOrigin: "center center",
+                      transition: isLightboxPanning
+                        ? "none"
+                        : "transform 0.12s ease-out",
+                      willChange: "transform",
                     }}
-                    onClick={(e) => e.stopPropagation()}
-                    className="max-w-[92vw] max-h-[86vh] flex items-center justify-center cursor-grab active:cursor-grabbing touch-none select-none"
+                    className="relative flex items-center justify-center max-w-[92vw] max-h-[86vh]"
                   >
-                    <img
-                      src={getAssetPath(galleryItems[lightboxIndex].url)}
-                      alt={
-                        galleryItems[lightboxIndex].alt || project.title
-                      }
-                      draggable={false}
-                      className="max-w-[92vw] max-h-[86vh] w-auto h-auto object-contain rounded-xs shadow-2xl pointer-events-none select-none"
-                    />
-                  </motion.div>
-                </AnimatePresence>
+                    {galleryItems[lightboxIndex].url
+                      .toLowerCase()
+                      .endsWith(".mp4") ? (
+                      <video
+                        src={getAssetPath(galleryItems[lightboxIndex].url)}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        controls
+                        className="max-w-[92vw] max-h-[86vh] w-auto h-auto object-contain rounded-xs shadow-2xl pointer-events-auto"
+                      />
+                    ) : (
+                      <img
+                        src={getAssetPath(galleryItems[lightboxIndex].url)}
+                        alt={
+                          galleryItems[lightboxIndex].alt || project.title
+                        }
+                        draggable={false}
+                        className="max-w-[92vw] max-h-[86vh] w-auto h-auto object-contain rounded-xs shadow-2xl pointer-events-none select-none"
+                      />
+                    )}
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+
+            {/* Subtle bottom helper hint when zoomed in */}
+            {lightboxZoom > 1 && (
+              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 bg-black/70 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/15 text-white/70 text-[11px] font-mono tracking-wider pointer-events-none uppercase">
+                Scroll to zoom • Drag to pan
               </div>
-            </motion.div>
-          )}
+            )}
+          </motion.div>
+        )}
       </AnimatePresence>
 
       {/* Config Drawer */}
